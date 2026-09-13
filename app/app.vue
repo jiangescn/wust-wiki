@@ -19,7 +19,7 @@ function exactDocumentLinks(items: ContentNavigationItem[]): ContentNavigationIt
     ...(item.children ? { children: exactDocumentLinks(item.children) } : {}),
   }))
 }
-const { data: navigation } = await useAsyncData('wiki-navigation', () => queryCollectionNavigation('docs'), {
+const { data: navigation } = await useAsyncData('wiki-navigation-with-status', () => queryCollectionNavigation('docs', ['status']), {
   transform: exactDocumentLinks,
 })
 provide('navigation', navigation)

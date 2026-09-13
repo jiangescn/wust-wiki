@@ -32,7 +32,7 @@ withDefaults(defineProps<LinkProps>(), {
 	:target="isExtLink(referenceLink(link)) ? '_blank' : undefined"
 >
 	<!-- loading="lazy" 有概率不加载图片 -->
-	<img v-if="icon?.startsWith?.('http')" class="icon" :src="icon" alt="">
+	<img v-if="icon && /^(https?:\/\/|\/)/.test(icon)" class="icon" :src="icon" alt="">
 	<Icon v-else-if="icon" class="icon" :icon="icon" />
 
 	<span v-if="$slots.default || text">

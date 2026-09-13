@@ -1,5 +1,11 @@
 # 西邮 Coder 原版组件迁移
 
+## APP 列表模板补充（2026-09-13）
+
+同一上游提交的 `docs/.vitepress/components/unique/LinkList.vue` 已迁入运行副本和源码快照，清单增加该组件（共14个）。仅替换类型导入路径并显式导入现有原版 Link，template/style 保持原样。以下 Coder 13组件的历史范围不包含此新增模板。
+
+`app/components/content/AppDirectory.vue` 为薄包装，`app/data/campus-apps.ts` 保存当前 WUST 页已有的9个条目；`content/1.campus/6.apps.md` 按组调用。可填写 text、desc、icon、link，未核实的图标和链接暂不填写，原表格保存在折叠区。没有导入西邮应用名单，也没有新增官方验证声明。卡片组件依照原版无链接时渲染为文本，填写已核实 link 后才可跳转。
+
 来源：[xupt-wiki/xupt-wiki](https://github.com/xupt-wiki/xupt-wiki)，提交 `f1ba156d8f91374422921df51a9bc26703c298ab`。
 对应原页面：[/coder/](https://wiki.cooo.site/coder/)、[/coder/blog](https://wiki.cooo.site/coder/blog)。
 
@@ -16,6 +22,8 @@
 `app/components/content/CoderDirectory.vue` 现在只是导入与选择原版组件的薄包装，原先自行实现的卡片、翻面按钮、排序算法及样式已移除。`app/pages/coder/index.vue` 和 `blog.vue` 使用原页面宽布局，保留 Wiki 顶部导航、底部和原路由。
 
 ## 必要适配
+
+本地图片适配：原版 Link 只识别 http 图标图片，运行副本现同时识别以 `/` 开头的站内图片路径（例如 `/images/app/today.jpg`）。Iconify 名称仍走 Icon 组件；原有样式和动画不变。`public/` 不写入资源 URL。原版卡片将图片作为右侧低透明度背景展示，这是其原有样式。
 
 1. 将上游 `@/components`、`@/utils` 改为本库相对路径；名单继续读取 `app/data/coder/`，保留可维护位置。
 2. 上游主题全局注册的 Icon、Link、BlurCard、Badge、Qrcode 改为组件内显式导入，避免覆盖 Nuxt 与博客组件的同名组件。Icon 仍为 `@iconify/vue`；Tooltip/v-tip 共用现有同库同配置插件。
