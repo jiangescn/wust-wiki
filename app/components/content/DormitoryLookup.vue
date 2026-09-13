@@ -102,7 +102,6 @@ onBeforeUnmount(() => window.removeEventListener('message', handleMessage))
 <template>
   <section class="dormitory-lookup not-prose" aria-labelledby="dormitory-lookup-title">
     <h2 id="dormitory-lookup-title">沁湖宿舍类型查询</h2>
-    <p class="dormitory-lookup-intro">选择区域并输入完整寝室号；每次查询都需要完成一次人机验证。</p>
     <form class="dormitory-lookup-form" @submit.prevent="submit">
       <label><span>区域</span><select v-model="area" :disabled="isWorking"><option value="">请选择区域</option><option value="A">A 区</option><option value="B">B 区</option><option value="C">C 区</option><option value="D">D 区</option></select></label>
       <label><span>寝室号</span><input v-model="room" type="text" inputmode="numeric" autocomplete="off" maxlength="16" placeholder="例如：1308" :disabled="isWorking"></label>
@@ -116,7 +115,7 @@ onBeforeUnmount(() => window.removeEventListener('message', handleMessage))
 
 <style scoped>
 .dormitory-lookup { margin: 1.5rem 0; padding: 1.25rem; border: 1px solid var(--ui-border); border-radius: .75rem; background: var(--ui-bg); }
-.dormitory-lookup h2 { margin: 0; font-size: 1.15rem; }.dormitory-lookup-intro, .dormitory-lookup-status { margin: .55rem 0 0; color: var(--ui-text-muted); font-size: .92rem; line-height: 1.6; }
+.dormitory-lookup h2 { margin: 0; font-size: 1.15rem; }.dormitory-lookup-status { margin: .55rem 0 0; color: var(--ui-text-muted); font-size: .92rem; line-height: 1.6; }
 .dormitory-lookup-form { display: grid; grid-template-columns: 8rem minmax(0, 1fr) auto; gap: .75rem; align-items: end; margin-top: 1rem; }.dormitory-lookup-form label { display: grid; gap: .35rem; color: var(--ui-text); font-size: .88rem; font-weight: 600; }
 .dormitory-lookup-form select, .dormitory-lookup-form input, .dormitory-lookup-form button { min-height: 2.6rem; border-radius: .45rem; font: inherit; }.dormitory-lookup-form select, .dormitory-lookup-form input { width: 100%; border: 1px solid var(--ui-border); padding: .5rem .65rem; background: var(--ui-bg); color: var(--ui-text); }.dormitory-lookup-form button { border: 0; padding: .5rem 1rem; background: var(--ui-primary); color: var(--ui-bg); font-weight: 700; cursor: pointer; }.dormitory-lookup-form button:disabled { cursor: wait; opacity: .65; }
 .dormitory-lookup-frame { display: block; width: 100%; height: 2px; margin-top: .5rem; border: 0; transition: height 160ms ease; }.dormitory-lookup-frame-active { height: 28rem; border: 1px solid var(--ui-border); border-radius: .45rem; }.dormitory-lookup-result { display: grid; gap: .35rem; margin-top: 1rem; padding: 1rem; border-radius: .5rem; background: color-mix(in srgb, var(--ui-primary) 10%, var(--ui-bg)); }.dormitory-lookup-result p { margin: 0; color: var(--ui-text-muted); font-size: .9rem; }.dormitory-lookup-result strong { font-size: 1.2rem; }.dormitory-lookup-result span { color: var(--ui-text-muted); }
