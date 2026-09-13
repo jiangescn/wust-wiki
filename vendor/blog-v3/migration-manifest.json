@@ -1,0 +1,168 @@
+{
+  "repository": "https://github.com/L33Z22L11/blog-v3",
+  "commit": "f6ea97d745517feb52f0c100e89acb36f0adc12f",
+  "components": [
+    {
+      "component": "Alert.vue",
+      "source": "app/components/content/Alert.vue",
+      "runtime": "app/clarity/components/Alert.vue",
+      "unchanged": true
+    },
+    {
+      "component": "Badge.vue",
+      "source": "app/components/content/Badge.vue",
+      "runtime": "app/clarity/components/Badge.vue",
+      "unchanged": true
+    },
+    {
+      "component": "Blur.vue",
+      "source": "app/components/content/Blur.vue",
+      "runtime": "app/clarity/components/Blur.vue",
+      "unchanged": true
+    },
+    {
+      "component": "CardList.vue",
+      "source": "app/components/content/CardList.vue",
+      "runtime": "app/clarity/components/CardList.vue",
+      "unchanged": true
+    },
+    {
+      "component": "Chat.vue",
+      "source": "app/components/content/Chat.vue",
+      "runtime": "app/clarity/components/Chat.vue",
+      "unchanged": true
+    },
+    {
+      "component": "Copy.vue",
+      "source": "app/components/content/Copy.vue",
+      "runtime": "app/clarity/components/Copy.vue",
+      "unchanged": true
+    },
+    {
+      "component": "EmojiClock.vue",
+      "source": "app/components/content/EmojiClock.vue",
+      "runtime": "app/clarity/components/EmojiClock.vue",
+      "unchanged": true
+    },
+    {
+      "component": "FeedCard.vue",
+      "source": "app/components/content/FeedCard.vue",
+      "runtime": "app/clarity/components/FeedCard.vue",
+      "unchanged": false
+    },
+    {
+      "component": "FeedGroup.vue",
+      "source": "app/components/content/FeedGroup.vue",
+      "runtime": "app/clarity/components/FeedGroup.vue",
+      "unchanged": false
+    },
+    {
+      "component": "Folding.vue",
+      "source": "app/components/content/Folding.vue",
+      "runtime": "app/clarity/components/Folding.vue",
+      "unchanged": true
+    },
+    {
+      "component": "Key.vue",
+      "source": "app/components/content/Key.vue",
+      "runtime": "app/clarity/components/Key.vue",
+      "unchanged": true
+    },
+    {
+      "component": "LinkBanner.vue",
+      "source": "app/components/content/LinkBanner.vue",
+      "runtime": "app/clarity/components/LinkBanner.vue",
+      "unchanged": true
+    },
+    {
+      "component": "LinkCard.vue",
+      "source": "app/components/content/LinkCard.vue",
+      "runtime": "app/clarity/components/LinkCard.vue",
+      "unchanged": true
+    },
+    {
+      "component": "MdTitle.vue",
+      "source": "app/components/content/MdTitle.vue",
+      "runtime": "app/clarity/components/MdTitle.vue",
+      "unchanged": true
+    },
+    {
+      "component": "Mermaid.vue",
+      "source": "app/components/content/Mermaid.vue",
+      "runtime": "app/clarity/components/Mermaid.vue",
+      "unchanged": true
+    },
+    {
+      "component": "MusicScore.vue",
+      "source": "app/components/content/MusicScore.vue",
+      "runtime": "app/clarity/components/MusicScore.vue",
+      "unchanged": true
+    },
+    {
+      "component": "Pic.vue",
+      "source": "app/components/content/Pic.vue",
+      "runtime": "app/clarity/components/Pic.vue",
+      "unchanged": true
+    },
+    {
+      "component": "Poetry.vue",
+      "source": "app/components/content/Poetry.vue",
+      "runtime": "app/clarity/components/Poetry.vue",
+      "unchanged": true
+    },
+    {
+      "component": "ProseA.vue",
+      "source": "app/components/content/ProseA.vue",
+      "runtime": "app/clarity/components/ProseA.vue",
+      "unchanged": true
+    },
+    {
+      "component": "ProseCode.vue",
+      "source": "app/components/content/ProseCode.vue",
+      "runtime": "app/clarity/components/ProseCode.vue",
+      "unchanged": true
+    },
+    {
+      "component": "ProsePre.vue",
+      "source": "app/components/content/ProsePre.vue",
+      "runtime": "app/clarity/components/ProsePre.vue",
+      "unchanged": true
+    },
+    {
+      "component": "ProseTable.vue",
+      "source": "app/components/content/ProseTable.vue",
+      "runtime": "app/clarity/components/ProseTable.vue",
+      "unchanged": true
+    },
+    {
+      "component": "Quote.vue",
+      "source": "app/components/content/Quote.vue",
+      "runtime": "app/clarity/components/Quote.vue",
+      "unchanged": true
+    },
+    {
+      "component": "Tab.vue",
+      "source": "app/components/content/Tab.vue",
+      "runtime": "app/clarity/components/Tab.vue",
+      "unchanged": true
+    },
+    {
+      "component": "Timeline.vue",
+      "source": "app/components/content/Timeline.vue",
+      "runtime": "app/clarity/components/Timeline.vue",
+      "unchanged": true
+    },
+    {
+      "component": "Tip.vue",
+      "source": "app/components/content/Tip.vue",
+      "runtime": "app/clarity/components/Tip.vue",
+      "unchanged": true
+    },
+    {
+      "component": "VideoEmbed.vue",
+      "source": "app/components/content/VideoEmbed.vue",
+      "runtime": "app/clarity/components/VideoEmbed.vue",
+      "unchanged": true
+    }
+  ]
+}

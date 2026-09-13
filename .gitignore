@@ -1,0 +1,12 @@
+node_modules/
+.pnpm-store/
+.nuxt/
+.output/
+dist/
+.data/
+.cache/
+.env
+.env.*
+!.env.example
+*.log
+artifacts/

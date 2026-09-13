@@ -1,0 +1,85 @@
+{
+  "repository": "https://github.com/xupt-wiki/xupt-wiki",
+  "commit": "f1ba156d8f91374422921df51a9bc26703c298ab",
+  "vitepress": "2.0.0-alpha.19",
+  "components": [
+    {
+      "original": "vendor/xupt-wiki/components/atomic/BlurCard.vue",
+      "runtime": "app/xupt/components/atomic/BlurCard.vue",
+      "sourceSha256": "0821122893e48f779cd3e54571f5531ec89e91e9fdb155e4d686b27c96acb248",
+      "runtimeSha256": "7bb1938be1d1188b2656cc3fb564f1219707d904a13eafe9f355dd4b490df528"
+    },
+    {
+      "original": "vendor/xupt-wiki/components/atomic/Dropdown.vue",
+      "runtime": "app/xupt/components/atomic/Dropdown.vue",
+      "sourceSha256": "6f90e7a77b61e489fa4d5661523c1592a3813a2fecc6ea6589554e059c46ffd1",
+      "runtimeSha256": "6f90e7a77b61e489fa4d5661523c1592a3813a2fecc6ea6589554e059c46ffd1"
+    },
+    {
+      "original": "vendor/xupt-wiki/components/atomic/Link.vue",
+      "runtime": "app/xupt/components/atomic/Link.vue",
+      "sourceSha256": "ef442567f935902c4efd8a1265ecaf94e4575088bacb8928fa50f84b0ae1f44b",
+      "runtimeSha256": "6db25cd59ca90af41e19d985acc6418b2404c2a26aba0167053a96d9bef4facc"
+    },
+    {
+      "original": "vendor/xupt-wiki/components/atomic/Qrcode.vue",
+      "runtime": "app/xupt/components/atomic/Qrcode.vue",
+      "sourceSha256": "d6672ff0b79f48868e58c86e1cfa88e8ad2bc5c655befc685b6d1df9eb767455",
+      "runtimeSha256": "206cef5088e63ad9e4592a583da8f783c7ddec20f934669ac6a1bbd9811caf8e"
+    },
+    {
+      "original": "vendor/xupt-wiki/components/atomic/SearchExcerpt.vue",
+      "runtime": "app/xupt/components/atomic/SearchExcerpt.vue",
+      "sourceSha256": "a9c3f0ed83111c764d4612887636aadc67dcea5e72879e25bffe6cf2215f8ec9",
+      "runtimeSha256": "a9c3f0ed83111c764d4612887636aadc67dcea5e72879e25bffe6cf2215f8ec9"
+    },
+    {
+      "original": "vendor/xupt-wiki/components/atomic/TextEllipsis.vue",
+      "runtime": "app/xupt/components/atomic/TextEllipsis.vue",
+      "sourceSha256": "c33eba200ed66a74a0afda934b826236cc3ade8aec96c5a5d0381e1f672c7976",
+      "runtimeSha256": "c33eba200ed66a74a0afda934b826236cc3ade8aec96c5a5d0381e1f672c7976"
+    },
+    {
+      "original": "vendor/xupt-wiki/components/atomic/Tip.vue",
+      "runtime": "app/xupt/components/atomic/Tip.vue",
+      "sourceSha256": "2f35f10d2b866b323b0e319c2fe54d9128ac9f43df5b4f1e0a7fa6eaa1884a4c",
+      "runtimeSha256": "1cc2c2b29a1a38cca06863af1e8fa50d6d60b4c8dada5b3d306f5da207b758ec"
+    },
+    {
+      "original": "vendor/xupt-wiki/components/unique/BlogCard.vue",
+      "runtime": "app/xupt/components/unique/BlogCard.vue",
+      "sourceSha256": "3227a0cff1ec7be01e0db49816568127c81363a61b637917f0ae0cbe2fc2eeb7",
+      "runtimeSha256": "1bca88a7cd0e8de6f313661bd061e06b7a838552573f682570ec0ec209a22a95"
+    },
+    {
+      "original": "vendor/xupt-wiki/components/unique/BlogList.vue",
+      "runtime": "app/xupt/components/unique/BlogList.vue",
+      "sourceSha256": "633ccd97c0f9bc344bc238c95a5df21407ae445a29cceca93aaeabca61177639",
+      "runtimeSha256": "62e13e848a028a05dda95c38755c12bdecbbf818e1ec95eb5be2857be7db57de"
+    },
+    {
+      "original": "vendor/xupt-wiki/components/unique/CoderGuild.vue",
+      "runtime": "app/xupt/components/unique/CoderGuild.vue",
+      "sourceSha256": "f51d569cdb4273a18d47771e75986326a410c36fecd876f35228d30e50bc8b00",
+      "runtimeSha256": "2c0fee0828b1795b51a1cef917a13b946de8b0e640676c2bf10853d42a0e2ce9"
+    },
+    {
+      "original": "vendor/xupt-wiki/components/unique/LabItem.vue",
+      "runtime": "app/xupt/components/unique/LabItem.vue",
+      "sourceSha256": "8f118d5631945ba0aed57872eaeb895b8625a4b80234bbfc1d55e2570becde10",
+      "runtimeSha256": "11231dce5789575115a6f17a1e641f29ae5646d5b37ad5d79feaa311d40963b1"
+    },
+    {
+      "original": "vendor/xupt-wiki/components/unique/LabList.vue",
+      "runtime": "app/xupt/components/unique/LabList.vue",
+      "sourceSha256": "eb64d943089166f9565311457a7f72cb47c4ba26bca6f085b06fdb439ec2ae5f",
+      "runtimeSha256": "f1274a5f225a651bc5f166dbb87210f870e2067fd5b76cb07ac7d1bad20f1df5"
+    },
+    {
+      "original": "vendor/xupt-wiki/vitepress/VPBadge.vue",
+      "runtime": "app/xupt/components/atomic/Badge.vue",
+      "sourceSha256": "8eb9904d5eacf3fc35e6a5f04b6eb6f8d766d4a1757ba18af04ffc8c6beabebc",
+      "runtimeSha256": "8eb9904d5eacf3fc35e6a5f04b6eb6f8d766d4a1757ba18af04ffc8c6beabebc"
+    }
+  ]
+}

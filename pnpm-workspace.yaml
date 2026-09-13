@@ -1,0 +1,11 @@
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true
+  '@parcel/watcher': true
+  sharp: true
+  vue-demi: true
+overrides:
+  '@nuxt/content': 3.15.2
+patchedDependencies:
+  docus@5.13.0: patches/docus@5.13.0.patch
+  plain-shiki@0.3.2: patches/plain-shiki.patch

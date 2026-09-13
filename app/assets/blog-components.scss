@@ -1,0 +1,15 @@
+@use "sass:meta";
+@use "../../vendor/blog-v3/styles/color.scss";
+@use "../../vendor/blog-v3/styles/font.scss";
+@use "../../vendor/blog-v3/styles/animation.scss";
+@use "../../vendor/blog-v3/styles/runtime-excerpt.scss";
+:root { --start:left; --end:right; --delay:.2s; --box-shadow-1:0 .1em .2em var(--ld-shadow); --box-shadow-2:0 .2em .5em var(--ld-shadow); --box-shadow-3:0 .5em 1em var(--ld-shadow); }
+:where(.blog-components) {
+  @include meta.load-css("../../vendor/blog-v3/styles/article.scss");
+  @include meta.load-css("../../vendor/blog-v3/styles/reusable.scss");
+}
+
+.blog-components { overflow-wrap: break-word; }
+
+// The Docus shell already supplies the document gutter.
+.wiki-prose > .article { margin: 0; min-width: 0; }

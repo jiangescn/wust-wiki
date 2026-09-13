@@ -1,0 +1,97 @@
+.katex-display, article > .katex {
+	display: block; // ```math 不会包裹 .katex-display
+	overflow: auto hidden;
+	padding: 1px 0;
+	scrollbar-width: thin;
+}
+
+.bikariya-overlay {
+	position: fixed;
+	inset: 0;
+	background-color: #0003;
+	backdrop-filter: blur(4px);
+
+	&.v-enter-from,
+	&.v-leave-to {
+		opacity: 0;
+	}
+
+	&.v-enter-active,
+	&.v-leave-active {
+		transition: all var(--delay);
+	}
+}
+
+.tippy-box {
+	padding: 0.3em 0.6em;
+	border-radius: 0.5em;
+	box-shadow: var(--box-shadow-3);
+	background-color: var(--ld-bg-card);
+	font-size: 0.8rem;
+	line-height: 1.4;
+	color: var(--c-text-2);
+	animation: float-in 0.2s;
+
+	&[data-state="hidden"] {
+		opacity: 0;
+	}
+
+	> .tippy-svg-arrow {
+		fill: var(--ld-bg-card);
+		pointer-events: none;
+	}
+}
+
+.shiki > .line > span,
+.shiki > span[style] {
+	font-style: var(--shiki-light-font-style);
+
+	.dark & {
+		background-color: var(--shiki-dark-bg) !important; /* stylelint-disable-line declaration-no-important */
+		font-style: var(--shiki-dark-font-style);
+		color: var(--shiki-dark) !important; /* stylelint-disable-line declaration-no-important */
+	}
+}
+
+.shiki > .line {
+	.indent {
+		display: inline-block;
+		position: relative;
+		left: var(--indent-offset);
+	}
+
+	.indent:empty {
+		height: 1.4em;
+		height: 1lh;
+		vertical-align: bottom;
+	}
+
+	.indent::before {
+		content: "";
+		position: absolute;
+		opacity: 0.15;
+		height: 100%;
+		border-inline-start: 1px solid currentcolor;
+		background-color: currentcolor;
+		pointer-events: none;
+	}
+
+	> .space::before,
+	>.tab::before {
+		display: inline-block;
+		opacity: 0.3;
+		width: 0;
+		pointer-events: none;
+	}
+
+	> .space:is(:first-child, :last-child)::before,
+	> :not(.space) + .space:has(+ .space)::before,
+	> .space + .space::before {
+		content: "·";
+	}
+
+	>.tab::before {
+		content: "⇥";
+	}
+}
+

@@ -1,0 +1,49 @@
+/* VitePress page spacing and XUPT theme rules, scoped to migrated pages. */
+.xupt-coder-page { padding: 0 5%; }
+@media (min-width: 83em) { .xupt-coder-page { padding: 0 10%; } }
+.xupt-coder {
+  --vp-c-default-soft: #BBB3;
+  --vp-c-brand-1: #06D;
+  --vp-c-brand-2: #003DA5;
+  --vp-c-brand-3: #07F;
+  --vp-c-brand-soft: #07F2;
+  line-height: 1.5;
+  color: var(--vp-c-text-1);
+}
+.dark .xupt-coder { --vp-c-brand-1: #3AF; --vp-c-brand-2: #7CF; }
+.xupt-coder svg:where(.iconify) {
+  display: inline-block;
+  flex-shrink: 0;
+  font-size: 1.2em;
+  vertical-align: sub;
+}
+.xupt-coder .vp-doc a {
+  color: var(--vp-c-brand-1);
+  background: linear-gradient(var(--vp-c-brand-soft), var(--vp-c-brand-soft)) no-repeat center bottom / 100% 2px;
+  text-decoration: none;
+  transition: 0.2s;
+}
+.xupt-coder .vp-doc a:hover {
+  border-radius: 0.2em;
+  background-size: 100% 100%;
+}
+.xupt-coder .tippy-box {
+  padding: 0.3em 0.6em;
+  border-radius: 0.5em;
+  box-shadow: var(--vp-shadow-3);
+  background-color: var(--vp-c-bg-elv);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--vp-c-text-2);
+}
+.xupt-coder .tippy-box[data-state="hidden"] { opacity: 0; }
+.xupt-coder .tippy-box > .tippy-svg-arrow { fill: var(--vp-c-bg-elv); }
+.xupt-coder .reference-note { margin: 2rem 0; text-align: center; font-size: .8rem; color: var(--vp-c-text-3); }
+.xupt-coder .VPBadge {
+  margin: 0 0.1em;
+  padding: 0.2em 0.5em;
+  font-size: 0.8em;
+  line-height: 1.2;
+  vertical-align: 0.1em !important;
+  transform: none;
+}

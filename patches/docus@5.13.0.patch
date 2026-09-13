@@ -1,0 +1,111 @@
+diff --git a/app/components/OgImage/Docs.takumi.vue b/app/components/OgImage/Docs.takumi.vue
+index c39fc127a6e5f86e554e000a9fba6ba8ba27c78e..55f9b3cc79fa4f44f79b7eebf9d6286212070bc9 100644
+--- a/app/components/OgImage/Docs.takumi.vue	
++++ b/app/components/OgImage/Docs.takumi.vue
+@@ -3,7 +3,7 @@ const { title, description, headline } = defineProps<{ title?: string, descripti
+ 
+ const appConfig = useAppConfig()
+ const { name: siteName } = useSiteConfig()
+-const primaryColor = appConfig.ui?.colors?.primary ?? 'emerald'
++const primaryColor = String(appConfig.ui?.colors?.primary ?? 'emerald')
+ </script>
+ 
+ <template>
+diff --git a/app/components/OgImage/Landing.takumi.vue b/app/components/OgImage/Landing.takumi.vue
+index d57353bc741b0d8b4a8231e117cef21586f835b8..6dc0a0e957e9be72477dc89d6df69ea58bf19d9b 100644
+--- a/app/components/OgImage/Landing.takumi.vue	
++++ b/app/components/OgImage/Landing.takumi.vue
+@@ -3,7 +3,7 @@ const { title, description } = defineProps<{ title?: string, description?: strin
+ 
+ const appConfig = useAppConfig()
+ const { name: siteName } = useSiteConfig()
+-const primaryColor = appConfig.ui?.colors?.primary ?? 'emerald'
++const primaryColor = String(appConfig.ui?.colors?.primary ?? 'emerald')
+ const logoPath = appConfig.header?.logo?.dark || appConfig.header?.logo?.light
+ 
+ const logoSvg = await fetchLogoSvg(logoPath)
+diff --git a/app/composables/useSeo.ts b/app/composables/useSeo.ts
+index 6ac2f16a2b26178f37bf3fe66fafbfbf6090ec43..3446d6ac4860b0304f5a2e0eacea1f9bc4597201 100644
+--- a/app/composables/useSeo.ts	
++++ b/app/composables/useSeo.ts
+@@ -170,7 +170,7 @@ export function useSeo(options: UseSeoOptions) {
+   // Set canonical link
+   useHead({
+     link: computed(() => {
+-      const links: Array<{ rel: string, href?: string, hreflang?: string }> = []
++      const links: Array<{ rel: 'canonical', href: string } | { rel: 'alternate', href: string, hreflang: string, type: 'text/html' }> = []
+ 
+       // Canonical URL
+       if (canonicalUrl.value) {
+@@ -187,6 +187,7 @@ export function useSeo(options: UseSeoOptions) {
+           if (localePath) {
+             links.push({
+               rel: 'alternate',
++              type: 'text/html',
+               hreflang: loc.code,
+               href: joinURL(baseUrl.value, localePath),
+             })
+@@ -198,6 +199,7 @@ export function useSeo(options: UseSeoOptions) {
+         if (defaultLocalePath) {
+           links.push({
+             rel: 'alternate',
++            type: 'text/html',
+             hreflang: 'x-default',
+             href: joinURL(baseUrl.value, defaultLocalePath),
+           })
+@@ -219,7 +221,7 @@ export function useSeo(options: UseSeoOptions) {
+   // JSON-LD structured data
+   useHead({
+     script: computed(() => {
+-      const scripts: Array<{ type: string, innerHTML: string }> = []
++      const scripts: Array<{ type: 'application/ld+json', innerHTML: string }> = []
+ 
+       if (!baseUrl.value || !title.value) return scripts
+ 
+diff --git a/app/plugins/i18n.ts b/app/plugins/i18n.ts
+index 1d568b72d73f1b393d619b913e727e0b00d269e7..265d13b564885f1ed240e9bd51770a7ce958f989 100644
+--- a/app/plugins/i18n.ts	
++++ b/app/plugins/i18n.ts
+@@ -9,7 +9,7 @@ const localeFiles = import.meta.glob<{ default: Record<string, unknown> }>('../.
+ export default defineNuxtPlugin(async () => {
+   const nuxtApp = useNuxtApp()
+ 
+-  const i18nConfig = nuxtApp.$config.public.i18n
++  const i18nConfig = nuxtApp.$config.public.i18n as { defaultLocale?: string } | undefined
+ 
+   // If i18n is not enabled, fetch and provide the configured locale in app config
+   if (!i18nConfig) {
+diff --git a/index.d.ts b/index.d.ts
+index 6c8b58412ae18f62248d5fa61bcca181ff64a5c8..d1026b2169e6bf998630c8ba8f3fbc954858a49a 100644
+--- a/index.d.ts	
++++ b/index.d.ts
+@@ -1,3 +1,4 @@
++import './app/types/index'
+ import type { AssistantModuleOptions } from './modules/assistant'
+ import type { SkillsModuleOptions } from './modules/skills'
+ 
+diff --git a/modules/assistant/runtime/composables/useAssistant.ts b/modules/assistant/runtime/composables/useAssistant.ts
+index 7c40d8d54145c3ddcaf29384669740f4f9f97211..8b61d66a2fdfd6dd682243241fc53b4fbf6c3ec1 100644
+--- a/modules/assistant/runtime/composables/useAssistant.ts	
++++ b/modules/assistant/runtime/composables/useAssistant.ts
+@@ -56,7 +56,7 @@ export const useAssistant = createSharedComposable(() => {
+     if (!Array.isArray(faqConfig)) {
+       const localizedConfig = faqConfig as LocalizedFaqQuestions
+       const currentLocale = docusRuntimeConfig?.locale || 'en'
+-      const defaultLocale = config.public.i18n?.defaultLocale || 'en'
++      const defaultLocale = (config.public.i18n as { defaultLocale?: string } | undefined)?.defaultLocale || 'en'
+ 
+       const questions = localizedConfig[currentLocale]
+         || localizedConfig[defaultLocale]
+diff --git a/package.json b/package.json
+index 330ae5f6f7af9439ccc5d6317dd12f9d78537309..22ae0d1df5dd363689596aaa95f67e241e3783cf 100644
+--- a/package.json	
++++ b/package.json
+@@ -64,5 +64,6 @@
+   "peerDependencies": {
+     "better-sqlite3": "12.x",
+     "nuxt": "4.x"
+-  }
++  },
++  "types": "./index.d.ts"
+ }
