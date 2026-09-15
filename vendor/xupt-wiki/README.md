@@ -19,7 +19,7 @@
 
 全部 13 个组件的 style 块保留原样，包括实验室悬停 `rotateY` 翻面（0.3s）、TransitionGroup 排序位移（0.3s）、博客头像/访问箭头/标签/链接的透明度过渡（0.2s）。没有另写一套动画。
 
-`app/components/content/CoderDirectory.vue` 负责选择页面装配。`/coder/` 从 2026-09-15 起由 `app/components/content/WustLabList.vue` 读取武科大数据，但卡片继续直接复用原版 LabItem、BlurCard、Link 和 QQ 群头像工具；`/coder/blog` 继续使用原版 BlogList。`app/pages/coder/index.vue` 和 `blog.vue` 使用原页面宽布局，保留 Wiki 顶部导航、底部和原路由。
+`app/components/content/CoderDirectory.vue` 负责选择页面装配。`/coder/` 从 2026-09-15 起由 `app/components/content/WustLabList.vue` 读取武科大数据，卡片继续直接复用原版 LabItem、BlurCard、Link 和 QQ 群头像工具；`/coder/blog` 同日起由 `WustBlogList.vue` 读取武科大数据，继续直接复用原版 BlogCard。`app/pages/coder/index.vue` 和 `blog.vue` 使用原页面宽布局，保留 Wiki 顶部导航、底部和原路由。
 
 ## 必要适配
 
@@ -37,9 +37,9 @@
 ## 行为与数据边界
 
 - 武科大 Coder 条目使用原版 LabItem 和 hover 翻面；触屏浏览器继续依赖原版轻触 hover 行为，未新增自定义触摸状态机。
-- 博客悬停显示 GitHub 与 RSS；RSS 和群号使用原版剪贴板逻辑。
+- 博客保留原版悬停透明度、访问箭头、GitHub/RSS 槽位和排序动画；首批武科大数据未提供 GitHub 与 RSS，因此相应入口不显示。运行适配为 Blog 类型补充可选 `avatar` 字段，当前图片取自各博客主页声明或实际引用的资源，不经过第三方图标服务。
 - 原频道入口通过悬停展示原 Qrcode 动态生成的二维码，保留访问链接。
-- `/coder/` 名单已替换为用户提供的首批武科大静态条目；未提供的学院、地点、官网和招新信息保持为空。`/coder/blog` 仍是西邮参考名单。两者均未接入实时同步。
+- `/coder/` 与 `/coder/blog` 名单均已替换为用户提供的首批武科大静态条目；未提供的学院、地点、官网、招新、年级、标签、GitHub 和 RSS 信息保持为空。两者均未接入实时同步。
 
 ## 检查
 

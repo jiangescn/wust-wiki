@@ -1,6 +1,6 @@
 # WUST Wiki
 
-Docus 文档站基础框架。保留西邮 Wiki 的分类、首页 15 个入口与原有路径结构；Coder 首页已开始使用用户提供的武科大资料，博客页暂保留标注来源的西邮参考数据，其余校园正文待补充。
+Docus 文档站基础框架。保留西邮 Wiki 的分类、首页 15 个入口与原有路径结构；Coder 首页和校友博客页已开始使用用户提供的武科大资料，其余校园正文待补充。
 
 后续 Agent 开始工作前请阅读 [AGENTS.md](./AGENTS.md)，其中记录复用原则、源码入口、兼容适配、验证方法和未完成事项。
 
@@ -84,11 +84,11 @@ pnpm generate
 
 ## Coder 目录
 
-`/coder/` 和 `/coder/blog` 继续复用西邮原版 LabItem、BlogList/BlogCard 及 BlurCard 等依赖，运行源码在 `app/xupt/`。`CoderDirectory.vue` 负责按页面选择装配：`/coder/` 由 `WustLabList.vue` 读取 `app/data/coder/labs.json` 中用户提供的武科大条目，`/coder/blog` 仍读取 `app/data/coder/blog.json` 中标注来源的西邮参考名单。也可通过 Markdown 中的 `::coder-directory{kind="labs"}` / `::coder-directory{kind="blogs"}` 调用。来源、适配和校验方法见 [迁移说明](./vendor/xupt-wiki/README.md)。
+`/coder/` 和 `/coder/blog` 继续复用西邮原版 LabItem、BlogCard 及 BlurCard 等依赖，运行源码在 `app/xupt/`。`CoderDirectory.vue` 负责按页面选择装配：`/coder/` 由 `WustLabList.vue` 读取 `app/data/coder/labs.json`，`/coder/blog` 由 `WustBlogList.vue` 读取 `app/data/coder/blog.json`；两者均为用户提供的武科大首批条目。也可通过 Markdown 中的 `::coder-directory{kind="labs"}` / `::coder-directory{kind="blogs"}` 调用。来源、适配和校验方法见 [迁移说明](./vendor/xupt-wiki/README.md)。
 
-武科大条目沿用原版悬停 3D 翻面、QQ 群头像和群号复制；按录入顺序展示，不随机排序。博客沿用头像/访问箭头/标签/链接淡入淡出与原版 TransitionGroup 排序动画，`?shuffle=false` 可固定博客初始顺序。头像和剪贴板失败行为同上游。目录数据是本地静态快照，不代表已接入在线同步。`pnpm check:xupt` 校验迁移源码与原样动画样式。
+武科大条目沿用原版悬停 3D 翻面、QQ 群头像和群号复制；按录入顺序展示，不随机排序。武科大博客沿用头像/访问箭头/标签/链接淡入淡出与原版 TransitionGroup 排序动画，`?shuffle=false` 可固定初始顺序；`avatar` 使用各博客主页实际声明的站点图标。Chord 主页没有声明 favicon，当前回退到主页实际引用的默认文章图。目录数据是本地静态快照，不代表已接入在线同步。`pnpm check:xupt` 校验迁移源码与原样动画样式。
 
-可维护字段：武科大条目 `id/name/tags/belong/addr/qq/github/website/plan`；博客 `author/title/grade/belong/tags/link/feed/github`。`tags` 为逗号分隔字符串；无值字段保持空字符串；新增条目 id、群号及博客 link 必须唯一。图片由 `qq` 自动生成 QQ 群头像；官网必须填写已核实的完整 URL。西邮博客相对链接兼容逻辑仍保留在 `app/utils/coder.ts`。
+可维护字段：武科大条目 `id/name/tags/belong/addr/qq/github/website/plan`；博客 `author/title/avatar/grade/belong/tags/link/feed/github/qq`。`tags` 为逗号分隔字符串；无值字段保持空字符串；新增条目 id、群号及博客 link 必须唯一。群图片由 `qq` 自动生成 QQ 群头像；博客 `avatar` 应从对应主页的 icon 声明或实际图片取得，官网和博客地址必须填写完整 URL。
 
 ## 来源
 

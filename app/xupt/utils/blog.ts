@@ -3,6 +3,7 @@
 export interface Blog {
 	author: string
 	title: string
+	avatar?: string
 	grade: string
 	belong: string
 	tags: string

@@ -30,11 +30,11 @@
 | 框架 | Docus 5.13.0 / Nuxt 4.5.2 / Nuxt Content 3.15.2，默认静态生成 |
 | 首页 | 保留参考站的 15 个入口、分类菜单、最近更新 |
 | 校园正文 | 以框架和待补充条目为主，不能宣称 WUST 信息已经核实完整 |
-| `/coder/`、`/coder/blog` | 继续复用西邮原版组件和动画；`/coder/` 已开始使用用户提供的武科大条目，`/coder/blog` 暂保留西邮参考名单 |
+| `/coder/`、`/coder/blog` | 继续复用西邮原版卡片组件和动画；两页均已开始使用用户提供的武科大条目 |
 | `/components` | 早期三个适配组件的演示，仍保留 |
 | `/blog-components`、`/previews/example` | 同一完整博客组件示例页；迁入原正文、27 个正文组件、BlogHeader 及相关依赖 |
 
-Coder 组件移植已在博客组件迁移后完成。运行副本在 `app/xupt/`，源码快照在 `vendor/xupt-wiki/`。`/coder/` 通过 `WustLabList.vue` 装配武科大数据并直接复用原版 LabItem、BlurCard 与 Link；不要恢复旧的自写翻面按钮。修改动画前核对上游 BlurCard、BlogCard 和博客列表的 TransitionGroup。
+Coder 组件移植已在博客组件迁移后完成。运行副本在 `app/xupt/`，源码快照在 `vendor/xupt-wiki/`。`/coder/` 通过 `WustLabList.vue` 装配武科大数据并直接复用原版 LabItem、BlurCard 与 Link；`/coder/blog` 通过 `WustBlogList.vue` 装配武科大数据并直接复用 BlogCard。不要恢复旧的自写翻面按钮。修改动画前核对上游 BlurCard、BlogCard 和博客列表的 TransitionGroup。
 
 参考来源：
 
@@ -50,7 +50,7 @@ Coder 组件移植已在博客组件迁移后完成。运行副本在 `app/xupt/
 | 首页入口、顶部分类 | `app/data/wiki.ts`、`app/pages/index.vue` |
 | 全部文章 | `app/pages/articles.vue` |
 | Markdown 与侧栏结构 | `content/`、`content.config.ts`、`templates/article.md` |
-| Coder 页面装配 | `app/pages/coder/`、`app/components/content/CoderDirectory.vue`、`app/components/content/WustLabList.vue` |
+| Coder 页面装配 | `app/pages/coder/`、`app/components/content/CoderDirectory.vue`、`app/components/content/WustLabList.vue`、`app/components/content/WustBlogList.vue` |
 | Coder 原版组件与样式接入 | `app/xupt/`、`app/assets/xupt-coder.css`、`app/assets/xupt-variables.css` |
 | Coder 相对链接兼容 | `app/utils/coder.ts` |
 | 实验室、博客名单 | `app/data/coder/labs.json`、`app/data/coder/blog.json` |
@@ -135,4 +135,4 @@ pnpm preview:static
 
 完成修改后更新相应 README、迁移清单或本文件中的过期事实，保留来源与适配理由。总结使用“直接复用”“必要适配”“自行实现”的真实分类。
 
-未完成方向包括：继续补充和核实 WUST Coder 条目的学院、地点、官网与招新资料，替换博客参考名单，其他文档使用完整博客组件时的逐页样式验证、外部媒体实际播放验证、正式域名与仓库配置。按用户下一次任务推进，不默认全部执行，也不为此重写现有组件。
+未完成方向包括：继续补充和核实 WUST Coder 条目的学院、地点、官网与招新资料，以及博客的年级、学院、标签、GitHub、RSS 信息；博客头像优先读取主页声明的 icon，Chord 因主页没有 icon 声明暂用其默认文章图。其他文档使用完整博客组件时的逐页样式验证、外部媒体实际播放验证、正式域名与仓库配置。按用户下一次任务推进，不默认全部执行，也不为此重写现有组件。
