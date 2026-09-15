@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import LabList from '~/xupt/components/unique/LabList.vue'
 import BlogList from '~/xupt/components/unique/BlogList.vue'
-import CoderGuild from '~/xupt/components/unique/CoderGuild.vue'
+import WustLabList from '~/components/content/WustLabList.vue'
 
 defineProps<{ kind: 'labs' | 'blogs' }>()
 </script>
 
 <template>
   <section class="xupt-coder">
-    <LabList v-if="kind === 'labs'"><CoderGuild /></LabList>
+    <WustLabList v-if="kind === 'labs'" />
     <BlogList v-else />
-    <p class="reference-note">西邮参考名单 · <a :href="kind === 'labs' ? 'https://wiki.cooo.site/coder/' : 'https://wiki.cooo.site/coder/blog'" target="_blank" rel="noopener noreferrer">西邮 Wiki</a></p>
+    <p v-if="kind === 'labs'" class="reference-note">武科大首批资料 · 用户提供 · 2026-09-15</p>
+    <p v-else class="reference-note">西邮参考名单 · <a href="https://wiki.cooo.site/coder/blog" target="_blank" rel="noopener noreferrer">西邮 Wiki</a></p>
   </section>
 </template>

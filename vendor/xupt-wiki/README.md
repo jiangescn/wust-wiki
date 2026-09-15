@@ -19,7 +19,7 @@
 
 全部 13 个组件的 style 块保留原样，包括实验室悬停 `rotateY` 翻面（0.3s）、TransitionGroup 排序位移（0.3s）、博客头像/访问箭头/标签/链接的透明度过渡（0.2s）。没有另写一套动画。
 
-`app/components/content/CoderDirectory.vue` 现在只是导入与选择原版组件的薄包装，原先自行实现的卡片、翻面按钮、排序算法及样式已移除。`app/pages/coder/index.vue` 和 `blog.vue` 使用原页面宽布局，保留 Wiki 顶部导航、底部和原路由。
+`app/components/content/CoderDirectory.vue` 负责选择页面装配。`/coder/` 从 2026-09-15 起由 `app/components/content/WustLabList.vue` 读取武科大数据，但卡片继续直接复用原版 LabItem、BlurCard、Link 和 QQ 群头像工具；`/coder/blog` 继续使用原版 BlogList。`app/pages/coder/index.vue` 和 `blog.vue` 使用原页面宽布局，保留 Wiki 顶部导航、底部和原路由。
 
 ## 必要适配
 
@@ -36,10 +36,10 @@
 
 ## 行为与数据边界
 
-- 实验室使用原版 hover 翻面；触屏浏览器的轻触 hover 行为在 Edge 移动模拟中检查。未新增键盘翻面或自定义触摸状态机。
+- 武科大 Coder 条目使用原版 LabItem 和 hover 翻面；触屏浏览器继续依赖原版轻触 hover 行为，未新增自定义触摸状态机。
 - 博客悬停显示 GitHub 与 RSS；RSS 和群号使用原版剪贴板逻辑。
 - 原频道入口通过悬停展示原 Qrcode 动态生成的二维码，保留访问链接。
-- 名单为本地静态快照，仍是西邮参考名单。原版在线表格链接保留，但没有接入实时同步，亦不代表 WUST 的真实资料。
+- `/coder/` 名单已替换为用户提供的首批武科大静态条目；未提供的学院、地点、官网和招新信息保持为空。`/coder/blog` 仍是西邮参考名单。两者均未接入实时同步。
 
 ## 检查
 
