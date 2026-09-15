@@ -54,6 +54,8 @@ pnpm generate
 | `app/clarity/` | 原博客全部组件及依赖的运行副本 |
 | `content/blog-components.md` | 原博客完整示例文档 |
 | `app/pages/blog-components.vue` | 原示例的渲染映射、侧栏与许可插槽 |
+| `app/data/interest-groups.ts` | 武科大兴趣群卡片数据（群名、方向、群号与分组） |
+| `app/components/content/GroupDirectory.vue` | 兴趣群卡片网格与群号复制装配 |
 | `app/app.css` | 页面与组件样式 |
 | `app/app.config.ts` | 中文界面、品牌、搜索与目录配置 |
 | `nuxt.config.ts` | 框架和构建配置 |
@@ -69,6 +71,8 @@ pnpm generate
 - 页面标题和描述由 frontmatter 提供，不要重复写一级标题。
 
 访问 `/blog-components` 或 `/previews/example` 查看原博客完整组件示例；`/components` 保留此前三个适配组件的示例。原组件使用 `Blog` 前缀注册，例如 `::blog-pic`，详细使用方式与必要适配见 `vendor/blog-v3/README.md`。
+
+`/life/groups` 通过 `::group-directory` 渲染武科大兴趣群卡片，数据维护入口为 `app/data/interest-groups.ts`。卡片直接复用迁入的 BlurCard、Link 与 QQ 群头像工具；群号点击后复制。名单是用户提供的静态汇总，不代表学校官方认证，也不会在线同步。
 
 ## 待配置
 
