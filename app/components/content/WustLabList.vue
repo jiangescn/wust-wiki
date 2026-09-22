@@ -4,7 +4,7 @@ import LabItem from '~/xupt/components/unique/LabItem.vue'
 </script>
 
 <template>
-  <h1 class="center-line">武科大实验室与俱乐部</h1>
+  <h1 class="center-line">武科大俱乐部</h1>
 
   <div class="center-line vp-doc">
   </div>

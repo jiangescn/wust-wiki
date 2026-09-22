@@ -18,8 +18,9 @@ const base = process.env.WIKI_QA_URL || 'http://127.0.0.1:4178';
       await page.waitForFunction(() => document.querySelector('#__nuxt')?.__vue_app__?.config.globalProperties.$nuxt?.isHydrating === false);
     }
     await visit('/coder/');
-    assert.equal(await page.locator('.lab-list > .card').count(), 5);
+    assert.equal(await page.locator('.lab-list > .card').count(), 20);
     assert.equal(await page.locator('h1').count(), 1);
+    assert.equal(await page.locator('h1').innerText(), '武科大俱乐部');
     const acm = page.locator('#lab-ACM');
     assert.equal(await acm.locator('.face').evaluate(el => getComputedStyle(el).transitionDuration), '0.3s');
     assert.equal(await acm.locator('.face .avatar-el').getAttribute('src'), 'https://p.qlogo.cn/gh/1057735398/1057735398/0/');
@@ -31,6 +32,27 @@ const base = process.env.WIKI_QA_URL || 'http://127.0.0.1:4178';
     assert.equal(await acm.locator('a').filter({ hasText: '官网' }).getAttribute('href'), 'https://blog.wustacm.com/');
     assert.equal(await acm.locator('.back').getByText('计算机学院').count(), 1);
     assert.equal(await acm.locator('.back').getByText('教三楼30512').count(), 1);
+    for (const [id, qq] of [
+      ['器乐队', '160239004'],
+      ['青协', '1023101261'],
+      ['信息安全', '1098248242'],
+      ['校报记者团', '1709167853'],
+      ['虚拟现实', '1109012649'],
+      ['知行思政', '1108499364'],
+      ['排球协会', '780198314'],
+      ['短视频中心', '1097833120'],
+      ['美育中心', '1107862126'],
+      ['合唱团', '1018545862'],
+      ['台球协会', '558754340'],
+      ['广播站', '978942021'],
+      ['音乐与吉他', '882910095'],
+      ['coding', '574643292'],
+      ['向日葵计划', '1012238436'],
+    ]) {
+      const card = page.locator(`#lab-${id}`);
+      assert.equal(await card.count(), 1);
+      assert.equal(await card.locator('.face .avatar-el').getAttribute('src'), `https://p.qlogo.cn/gh/${qq}/${qq}/0/`);
+    }
     async function shuffle(selector) {
       const old = await page.locator(selector).evaluateAll(nodes => nodes.map(el => el.id));
       await page.locator('.shuffle-btn').click();
@@ -72,6 +94,16 @@ const base = process.env.WIKI_QA_URL || 'http://127.0.0.1:4178';
     await page.locator('.blogs > .card').first().waitFor();
     await visit('/overview');
     assert.ok(await page.locator('main h1').count());
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await visit('/study/contest');
+    const clubsEntry = page.getByRole('link', { name: '社团与爱好', exact: true }).first();
+    assert.equal(await clubsEntry.getAttribute('href'), '/coder');
+    await clubsEntry.click();
+    await page.waitForURL(url => url.pathname.replace(/\/$/, '') === '/coder');
+    await page.locator('.lab-list > .card').first().waitFor();
+    await page.goto(base + '/study/clubs');
+    await page.waitForURL(url => url.pathname.replace(/\/$/, '') === '/coder');
+    assert.equal(await page.locator('h1').innerText(), '武科大俱乐部');
     console.log(JSON.stringify({ errors, warnings }));
     assert.deepEqual(errors, []); assert.deepEqual(warnings, []);
     console.log('PASS: WUST lab cards, original 3D flip, group avatars, clipboard, links, blog animations, dark/mobile and both routes');

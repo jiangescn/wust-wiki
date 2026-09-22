@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import competitions from '~/data/competitions-2024.json'
+import officialUrls from '~/data/competition-official-urls.json'
 
 // Temporarily hide per-entry source metadata; retain the data and UI for restoration.
 const showSourceDetails = false
@@ -27,6 +28,7 @@ const filtered = computed(() => {
   )
 })
 const shown = computed(() => filtered.value.slice(0, visible.value))
+const officialUrl = (id: number) => officialUrls[String(id) as keyof typeof officialUrls] || ''
 watch([keyword, level, organizer, audience], () => { visible.value = 20 })
 function reset() { keyword.value = ''; level.value = 'all'; organizer.value = 'all'; audience.value = 'all' }
 </script>
@@ -60,6 +62,19 @@ function reset() { keyword.value = ''; level.value = 'all'; organizer.value = 'a
             <div v-if="showSourceDetails"><dt>原表序号</dt><dd>{{ item.id }}</dd></div>
             <div><dt>主办单位</dt><dd>{{ item.host }}</dd></div>
             <div><dt>列入排行榜</dt><dd>{{ item.ranked ? '是' : '否' }}</dd></div>
+            <div>
+              <dt>参考官网链接</dt>
+              <dd>
+                <LinkCard
+                  v-if="officialUrl(item.id)"
+                  :link="officialUrl(item.id)"
+                  title="访问赛事官网"
+                  :description="officialUrl(item.id)"
+                  :aria-label="`${item.name}：访问参考官网`"
+                  class="competition-official-link"
+                />
+              </dd>
+            </div>
             <div v-if="showSourceDetails"><dt>来源位置</dt><dd>PDF 第 {{ item.pdfPage }} 页，原文页码 {{ item.printedPage }}</dd></div>
           </dl>
           <UButton v-if="showSourceDetails" :to="`/files/competition-catalog-2024.pdf#page=${item.pdfPage}`" target="_blank" color="neutral" variant="link" size="sm">查看原表这一页 →</UButton>
@@ -94,6 +109,7 @@ function reset() { keyword.value = ''; level.value = 'all'; organizer.value = 'a
 .competition-detail dl > div { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: .5rem; padding: .25rem 0; }
 .competition-detail dt { color: var(--ui-text-muted); }
 .competition-detail dd { margin: 0; overflow-wrap: anywhere; }
+.competition-official-link { margin: 0; padding: .75rem; gap: .75rem; }
 .competition-more { display: flex; justify-content: center; margin-top: 1.25rem; }
 .competition-empty { border: 1px dashed var(--ui-border); border-radius: .5rem; padding: 2rem 1rem; text-align: center; color: var(--ui-text-muted); }
 @media (max-width: 640px) {

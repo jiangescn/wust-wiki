@@ -9,6 +9,6 @@ defineProps<{ kind: 'labs' | 'blogs' }>()
   <section class="xupt-coder">
     <WustLabList v-if="kind === 'labs'" />
     <WustBlogList v-else />
-    <p class="reference-note">武科大首批资料 · 用户提供 · 2026-09-15</p>
+    <p class="reference-note">武科大资料 · 用户提供 · {{ kind === 'labs' ? '2026-09-22' : '2026-09-15' }}</p>
   </section>
 </template>

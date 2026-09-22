@@ -94,6 +94,8 @@ pnpm generate
 
 可维护字段：武科大条目 `id/name/tags/belong/addr/qq/github/website/plan`；博客 `author/title/avatar/grade/belong/tags/link/feed/github/qq`。`tags` 为逗号分隔字符串；无值字段保持空字符串；新增条目 id、群号及博客 link 必须唯一。群图片由 `qq` 自动生成 QQ 群头像；博客 `avatar` 应从对应主页的 icon 声明或实际图片取得，官网和博客地址必须填写完整 URL。
 
+`/coder` 页面名称为“武科大俱乐部”，当前收录用户提供的 20 项组织资料。2026-09-22 新增虚拟现实俱乐部、知行思政、排球协会、短视频中心、美育中心、合唱团、台球协会、广播站、音乐与吉他协会、coding 俱乐部和“向日葵计划”志愿服务队；名称、群号按用户提供内容录入，主题标签从组织名称提取，未提供的所属单位、地址等留空，不保留聊天发言者和时间戳。“社团与爱好”侧栏入口通过其 frontmatter 的 `navigation.to` 指向 `/coder`，旧地址 `/study/clubs` 由 `app/pages/study/clubs.vue` 跳转，兼容站内跳转及静态直接访问。
+
 ## 来源
 
 框架为 Docus 5.13.0 / Nuxt 4.5.2 / Nuxt Content 3.15.2；依赖版本和 lockfile 已固定。
