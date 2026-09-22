@@ -8,6 +8,8 @@ Docus 文档站基础框架。保留西邮 Wiki 的分类、首页 15 个入口�
 
 后续补全专业请遵循 [本科专业列表填写指南](./docs/major-editing-guide.md)。
 
+竞赛与证书页 `/study/contest` 已按用户提供的 2024 年文件整理 253 项竞赛，支持搜索、类别、组织单位及面向对象筛选，保留管理办法摘要与原 PDF 页码。来源版本、维护入口及核验方式见 [竞赛目录来源与维护](./docs/competition-catalog-sources.md)。
+
 普通 Markdown 正文与博客示例共享原博客排版、链接、行内代码、代码块和表格渲染；接入入口为 `app/utils/blog-prose.ts` 和 `app/pages/[[lang]]/[...slug].vue`，页面外壳仍沿用 Docus。
 
 ## 本地开发

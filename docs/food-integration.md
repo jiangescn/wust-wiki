@@ -1,6 +1,6 @@
 # 美食页面接入
 
-入口 `/life/food`，正文为 `content/3.life/5.food.md`。`FoodDirectory.vue` 随正文挂载，在浏览器端匿名读取数据，静态生成时不抓取菜品或用户评论。页面正文集中展示动态目录，状态仍为 draft。
+入口 `/life/food`，正文为 `content/3.life/5.food.md`。`FoodDirectory.vue` 随正文挂载，在浏览器端匿名读取数据，静态生成时不抓取菜品或用户评论。页面正文集中展示动态目录，状态为 published，`updated` 记录实际更新日期，供首页“最近更新”自动收录。
 
 ## 展示布局
 

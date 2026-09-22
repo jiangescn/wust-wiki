@@ -1,0 +1,98 @@
+// Requires Playwright and Edge, like the other Wiki browser checks.
+const { chromium } = require('playwright');
+const assert = require('node:assert/strict');
+const { readFile, mkdir } = require('node:fs/promises');
+const { createHash } = require('node:crypto');
+const base = process.env.WIKI_QA_URL || 'http://127.0.0.1:4187';
+
+(async () => {
+  const data = JSON.parse(await readFile('app/data/competitions-2024.json', 'utf8'));
+  await mkdir('.cache/contest-qa', { recursive: true });
+  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', msg => { if (/hydration|Failed to resolve component/i.test(msg.text())) errors.push(msg.text()); });
+    await page.goto(base + '/study/contest');
+    await page.getByRole('textbox', { name: '搜索竞赛' }).waitFor();
+    const items = page.locator('.competition-item');
+    const select = async (label, name) => {
+      await page.getByRole('combobox', { name: label, exact: true }).click();
+      await page.getByRole('option', { name, exact: true }).click();
+    };
+    const reset = () => page.getByRole('button', { name: '重置筛选', exact: true }).click();
+    const count = async n => assert.match(await page.locator('.competition-count').innerText(), new RegExp(`找到 ${n} 项`));
+    const overflow = async () => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false, 'whole-page overflow');
+    await count(253);
+    assert.equal(await items.count(), 20);
+    while (await page.getByRole('button', { name: /显示更多/ }).count()) await page.getByRole('button', { name: /显示更多/ }).click();
+    assert.deepEqual(await items.evaluateAll(nodes => nodes.map(node => Number(node.dataset.contestId))), data.map(item => item.id));
+    const search = page.getByRole('textbox', { name: '搜索竞赛' });
+    await search.fill('湖北工匠杯');
+    await count(1);
+    assert.equal(await items.first().getAttribute('data-contest-id'), '253');
+    await items.locator('summary').focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await items.first().getAttribute('open'), '');
+    assert.equal(await items.getByText('原表序号', { exact: true }).count(), 0);
+    assert.equal(await items.getByText('来源位置', { exact: true }).count(), 0);
+    assert.equal(await items.locator('a').count(), 0);
+    await page.keyboard.press('Enter');
+    assert.equal(await items.first().getAttribute('open'), null);
+    await search.fill('没有这项竞赛-QA');
+    await count(0);
+    await page.getByText('没有找到符合条件的竞赛，可以更换关键词或重置筛选。').waitFor();
+    await reset();
+    for (const level of ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']) {
+      const expected = data.filter(item => item.level === level);
+      await select('筛选竞赛类别', `${level} 类 · ${expected.length} 项`);
+      await count(expected.length);
+      assert.deepEqual(await items.evaluateAll(nodes => nodes.map(node => Number(node.dataset.contestId))), expected.slice(0, 20).map(item => item.id));
+    }
+    await reset();
+    await select('筛选组织单位', '材料学部');
+    await count(data.filter(item => item.organizers.includes('材料学部')).length);
+    await search.fill('机械工程');
+    await count(1);
+    assert.equal(await items.first().getAttribute('data-contest-id'), '71', 'joint organizers remain searchable');
+    await reset();
+    await select('筛选面向对象', '原表未注明');
+    await count(145);
+    await select('筛选竞赛类别', 'A1 类 · 3 项');
+    await count(0);
+    await reset();
+    await select('筛选面向对象', '本科生（含全校学生）');
+    await count(data.filter(item => ['本科生', '全校学生'].includes(item.audience)).length);
+    await reset();
+    await select('筛选面向对象', '研究生（含全校学生）');
+    await count(data.filter(item => ['研究生', '全校学生'].includes(item.audience)).length);
+    await reset();
+    await items.first().locator('summary').click();
+    await overflow();
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.screenshot({ path: '.cache/contest-qa/desktop.png', animations: 'disabled' });
+    const pdf = await page.request.get(base + '/files/competition-catalog-2024.pdf');
+    assert.equal(pdf.status(), 200);
+    assert.match(pdf.headers()['content-type'], /application\/pdf/);
+    assert.equal(createHash('sha256').update(await pdf.body()).digest('hex'), '15aad60fab950635ede78f78cc0a9c4eaa3ed71e601d964ae7f9c3ac5a4054e8');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await search.fill('中国高校计算机大赛');
+    await items.first().locator('summary').click();
+    await overflow();
+    await page.locator('.competition-directory').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: '.cache/contest-qa/mobile.png', animations: 'disabled' });
+    await page.evaluate(() => localStorage.setItem('nuxt-color-mode', 'dark'));
+    await page.reload();
+    await page.waitForFunction(() => document.documentElement.classList.contains('dark'));
+    await overflow();
+    await page.locator('.competition-directory').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: '.cache/contest-qa/mobile-dark.png', animations: 'disabled' });
+    await page.goto(base + '/');
+    await page.locator('.wiki-update-list a[href="/study/contest"]').click();
+    await page.waitForURL('**/study/contest');
+    await search.waitFor();
+    assert.deepEqual(errors, []);
+    console.log('PASS: 253 entries, full-catalog search, category/organizer/audience filters, keyboard disclosure, original PDF hash and MIME, homepage navigation, desktop/mobile and dark mode.');
+  } finally { await browser.close(); }
+})().catch(error => { console.error(error); process.exit(1); });
