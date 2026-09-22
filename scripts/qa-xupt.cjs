@@ -18,7 +18,7 @@ const base = process.env.WIKI_QA_URL || 'http://127.0.0.1:4178';
       await page.waitForFunction(() => document.querySelector('#__nuxt')?.__vue_app__?.config.globalProperties.$nuxt?.isHydrating === false);
     }
     await visit('/coder/');
-    assert.equal(await page.locator('.lab-list > .card').count(), 20);
+    assert.equal(await page.locator('.lab-list > .card').count(), 21);
     assert.equal(await page.locator('h1').count(), 1);
     assert.equal(await page.locator('h1').innerText(), '武科大俱乐部');
     const acm = page.locator('#lab-ACM');
@@ -48,6 +48,7 @@ const base = process.env.WIKI_QA_URL || 'http://127.0.0.1:4178';
       ['音乐与吉他', '882910095'],
       ['coding', '574643292'],
       ['向日葵计划', '1012238436'],
+      ['羽毛球', '1039394170'],
     ]) {
       const card = page.locator(`#lab-${id}`);
       assert.equal(await card.count(), 1);
