@@ -6,12 +6,14 @@ const sourceIcons = [...new Set([
   ...readdirSync(fileURLToPath(new URL('./app/clarity/components', import.meta.url))).flatMap(file => [...readFileSync(fileURLToPath(new URL(`./app/clarity/components/${file}`, import.meta.url)), 'utf8').matchAll(/(?:tabler|ri|catppuccin|simple-icons|line-md):[a-z0-9-]+/g)].map(match => match[0])),
   ...[...readFileSync(fileURLToPath(new URL('./app/utils/icon.ts', import.meta.url)), 'utf8').matchAll(/(?:tabler|ri|catppuccin|simple-icons|line-md):[a-z0-9-]+/g)].map(match => match[0]),
   'catppuccin:file', 'catppuccin:yaml', 'catppuccin:changelog', 'catppuccin:markdown', 'catppuccin:typescript', 'lucide:pencil-line',
+  'lucide:utensils', 'lucide:star', 'lucide:search', 'lucide:refresh-cw', 'lucide:map-pin', 'lucide:message-square', 'lucide:arrow-right', 'lucide:image',
 ])]
 
 export default defineNuxtConfig({
   extends: ['docus'],
   runtimeConfig: {
     public: {
+      foodApiBase: process.env.NUXT_PUBLIC_FOOD_API_BASE || '/api/food',
       // The bridge owns GeeTest and the API call; this site only renders approved results.
       dormitoryEmbedUrl: process.env.NUXT_PUBLIC_DORMITORY_EMBED_URL || 'https://dorm.wustacm.com/embed',
     },

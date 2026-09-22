@@ -76,6 +76,8 @@ pnpm generate
 
 ## 待配置
 
+美食页 `/life/food` 已加入「吃在武科」店铺目录、店内菜单、口碑榜和公开评价；默认南苑，先选店铺再加载菜单。源码入口 `app/components/content/FoodDirectory.vue`。复用现有 Wiki 外壳和 Nuxt UI 组件。开发与本地静态预览自带只读接口代理；**纯静态托管需另配同源转发，不能只上传静态文件就宣称接入完成**。详见 [美食页面接入](docs/food-integration.md)。
+
 - 正式域名：`NUXT_SITE_URL`。
 - 项目 GitHub 地址：`app/app.config.ts` 中将 `github: false` 改为实际仓库信息，再启用源文件编辑入口。当前不使用虚构仓库链接。
 - 首页保留了参考站的 `CO 导航` 外链，它属于西邮项目；如需 WUST 专属导航，修改首页按钮地址。
