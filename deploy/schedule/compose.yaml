@@ -1,0 +1,25 @@
+services:
+  schedule:
+    build: .
+    image: wust-schedule:20260923-2
+    container_name: wust-schedule
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3018:3000"
+    environment:
+      SCHEDULE_ORIGIN: https://schedule.wiki.jianges.com
+      SCHEDULE_ALLOWED_ORIGINS: https://wiki.wustacm.com
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 64
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "2"

@@ -1,0 +1,118 @@
+<script setup lang="ts">
+import type { LoginView } from '~~/server/utils/login-template-store.mjs'
+import { SCHEDULE_CACHE_KEY } from '~/utils/schedule'
+
+const apiBase = useRuntimeConfig().public.scheduleApiBase.replace(/\/$/, '')
+const apiUrl = apiBase + '/api/login-template'
+const { snapshot, notice, save, clear: clearCache, expire } = useSchoolScheduleCache()
+const view = ref<LoginView>({ state: 'idle', message: '' })
+const busy = ref(false)
+const error = ref('')
+const clock = ref(Date.now())
+const pending = computed(() => ['waiting', 'scanned'].includes(view.value.state))
+const active = computed(() => busy.value || pending.value)
+const remaining = computed(() => Math.max(0, Math.ceil(((view.value.expiresAt || 0) - clock.value) / 1000)))
+const labels: Record<string, string> = { idle: '微信扫码', creating: '正在生成', waiting: '等待扫码', scanned: '等待确认', complete: '同步完成', needs_action: '请前往官网', needs_adapter: '暂无法读取', error: '连接失败', expired: '二维码过期', throttled: '请稍后' }
+let pollTimer: ReturnType<typeof setTimeout> | undefined
+let ticker: ReturnType<typeof setInterval> | undefined
+let generation = 0
+let sessionToken = ''
+let usedSession = false
+let leaving = false
+let cleanup: Promise<unknown> = Promise.resolve()
+const dateText = (value: number) => new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+function cancelTimer() { if (pollTimer) clearTimeout(pollTimer); pollTimer = undefined }
+function release(token = sessionToken) {
+  if (!usedSession && !token) return
+  cleanup = fetch(apiUrl, { method: 'POST', credentials: apiBase ? 'omit' : 'same-origin', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: '{"action":"clear"}', keepalive: true, signal: AbortSignal.timeout(10_000) }).catch(() => {})
+}
+async function call(action: 'start' | 'poll', ticket: number) {
+  usedSession = true
+  const data = await $fetch<LoginView & { sessionToken?: string }>(apiUrl, { method: 'POST', credentials: apiBase ? 'omit' : 'same-origin', headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : undefined, body: { action, ...(action === 'start' ? { provider: 'wust' } : {}) }, timeout: 25_000, retry: 0 })
+  if (ticket !== generation || leaving) { if (data.sessionToken) release(data.sessionToken); return null }
+  if (data.sessionToken) sessionToken = data.sessionToken
+  return data
+}
+function accept(data: LoginView) {
+  view.value = data
+  if (data.state === 'complete') {
+    if (!save(data.result)) { view.value = { state: 'error', message: '返回的课表格式不完整，请前往学校教务系统查询。' } }
+    release(); sessionToken = ''; usedSession = false
+  }
+}
+function fail(cause: unknown) {
+  const status = (cause as { status?: number }).status
+  error.value = status === 429 ? '请求较多，请一分钟后重试。' : status === 401 ? '扫码会话已到期，请重新生成二维码。' : '暂时无法连接课表服务，请稍后重试或前往学校教务系统。'
+  view.value = { state: 'error', message: snapshot.value ? '本次未更新，仍显示上次保存的课表。' : '' }
+  release(); sessionToken = ''; usedSession = false
+}
+function poll(ticket: number) {
+  cancelTimer()
+  if (!pending.value || leaving || ticket !== generation) return
+  pollTimer = setTimeout(async () => {
+    try { const data = await call('poll', ticket); if (!data) return; accept(data); poll(ticket) }
+    catch (cause) { if (ticket === generation && !leaving) fail(cause) }
+  }, 3500)
+}
+async function start() {
+  if (active.value) return
+  expire(); error.value = ''; busy.value = true
+  const ticket = ++generation
+  view.value = { state: 'creating', message: '正在获取学校微信二维码…' }
+  try { await cleanup; if (ticket !== generation || leaving) return; const data = await call('start', ticket); if (data) { accept(data); poll(ticket) } }
+  catch (cause) { if (ticket === generation && !leaving) fail(cause) }
+  finally { if (ticket === generation) busy.value = false }
+}
+function cancel() {
+  ++generation; cancelTimer(); release(); sessionToken = ''; usedSession = false; busy.value = false; error.value = ''
+  view.value = { state: 'idle', message: snapshot.value ? '已取消同步，保留上次课表。' : '已取消扫码。' }
+}
+function forget() { cancel(); clearCache(); view.value = { state: 'idle', message: '本机保存的课表已清除。' } }
+function onExit() { ++generation; cancelTimer(); release(); sessionToken = ''; usedSession = false; busy.value = false; view.value = { state: 'idle', message: '' } }
+function onStorage(event: StorageEvent) { if ((event.key === SCHEDULE_CACHE_KEY || event.key === null) && event.newValue === null) cancel() }
+onMounted(() => {
+  window.addEventListener('pagehide', onExit)
+  window.addEventListener('storage', onStorage)
+  ticker = setInterval(() => {
+    clock.value = Date.now()
+    if (pending.value && remaining.value === 0) { cancel(); view.value = { state: 'expired', message: '二维码已过期，请重新生成。' } }
+  }, 1000)
+})
+onBeforeUnmount(() => { leaving = true; onExit(); if (ticker) clearInterval(ticker); window.removeEventListener('pagehide', onExit); window.removeEventListener('storage', onStorage) })
+</script>
+
+<template>
+  <div class="school-schedule">
+    <div class="query-toolbar">
+      <UButton :loading="busy" :disabled="active" @click="start">{{ snapshot ? '重新扫码更新' : '微信扫码查课表' }}</UButton>
+      <UButton v-if="active" color="neutral" variant="outline" @click="cancel">取消扫码</UButton>
+      <UButton v-if="snapshot" color="neutral" variant="ghost" @click="forget">清除本机课表</UButton>
+      <a href="https://bkjx.wust.edu.cn/jsxsd/framework/xsMain.jsp" target="_blank" rel="noopener noreferrer">学校教务系统 ↗</a>
+    </div>
+    <p v-if="snapshot" class="cache-status">上次同步 {{ dateText(snapshot.fetchedAt) }} · 本机保留至 {{ dateText(snapshot.expiresAt) }}</p>
+    <p v-else class="query-description">使用已绑定学校账号的微信扫码，无需输入密码。成功后课表在此浏览器保留七天，可随时清除。</p>
+    <p class="privacy-note">仅保存课程信息，不保存学校登录凭据。公用设备使用后请清除课表。</p>
+    <p v-if="notice" role="status" class="cache-notice">{{ notice }}</p>
+    <p v-if="error" role="alert" class="query-error">{{ error }}</p>
+    <div v-if="active || view.state === 'expired'" class="scan-panel">
+      <UBadge color="neutral" variant="subtle">{{ labels[view.state] || view.state }}</UBadge>
+      <img v-if="view.qr && pending" :src="view.qr" alt="学校微信登录二维码" width="240" height="240" referrerpolicy="no-referrer">
+      <p v-if="pending">使用微信扫码并确认 · 剩余 {{ remaining }} 秒</p>
+    </div>
+    <p v-if="view.message" role="status" aria-live="polite">{{ view.message }}</p>
+    <ScheduleBoard v-if="snapshot" :result="snapshot.result" />
+  </div>
+</template>
+
+<style scoped>
+.school-schedule { min-width: 0; max-width: 100%; margin: 1rem 0 2rem; }
+.query-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; }
+.query-toolbar a { font-size: .8rem; color: var(--ui-primary); margin-left: auto; }
+.query-description, .cache-status { font-size: .85rem; margin: .9rem 0 .4rem; }
+.privacy-note { color: var(--ui-text-muted); font-size: .75rem; margin: .4rem 0 1rem; }
+.query-error { color: var(--ui-error); }
+.cache-notice { font-size: .8rem; color: var(--ui-text-muted); }
+.scan-panel { display: flex; flex-direction: column; align-items: center; gap: .75rem; padding: 1rem; border: 1px solid var(--ui-border); border-radius: 12px; margin-top: 1rem; }
+.scan-panel img { width: 264px; max-width: 100%; height: auto; background: white; border: 12px solid white; image-rendering: pixelated; }
+.scan-panel p { margin: 0; font-size: .8rem; }
+</style>

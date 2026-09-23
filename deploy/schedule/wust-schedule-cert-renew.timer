@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily certificate renewal check for WUST schedule
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=3600
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,7 @@
+{
+  "name": "wust-school-schedule-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": { "parse5": "8.0.1", "tough-cookie": "6.0.0" }
+}

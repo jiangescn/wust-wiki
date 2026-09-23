@@ -2,7 +2,13 @@
 
 Docus 文档站基础框架。保留西邮 Wiki 的分类、首页 15 个入口与原有路径结构；Coder 首页和校友博客页已开始使用用户提供的武科大资料，其余校园正文待补充。
 
+正式 Wiki 域名为 **https://wiki.wustacm.com**，保持静态部署。课表后端为 **https://schedule.wiki.jianges.com**，只提供学校微信扫码 API，不承载另一个网站；接入与维护见 [课表后端说明](docs/schedule-deployment.md)。
+
+课程安排页 `/study/curriculum` 已嵌入学校微信扫码查询，显示当前学期课程、教师、地点、节次、周次与教务备注。入口为 `content/2.study/2.curriculum.md`，查询入口为 `app/components/content/ScheduleQuery.vue`，周课表与日列表复用 `ScheduleBoard.vue`，课表结果在当前浏览器保存七天。页面下方说明仍为待完善草稿，查询结果以教务系统为准。
+
 后续 Agent 开始工作前请阅读 [AGENTS.md](./AGENTS.md)，其中记录复用原则、源码入口、兼容适配、验证方法和未完成事项。
+
+课表展示样例：`/study/curriculum?schedule=sample`，由 `ScheduleCurriculum.vue` 切换真实查询与 `ScheduleGridPrototype.vue`。正式查询与样例共用 `ScheduleBoard.vue`，自行实现 Vue + CSS Grid 并复用 Nuxt UI 控件与 Wiki 外壳。样例课程明确标注为虚构，不写入课表缓存。支持周次、周表/日列表、课程详情和两校区作息切换；作息来自用户提供图片，仅覆盖第 1–10 节。正式版数据流、七天缓存及验收见 [课表正式版说明](docs/schedule-production.md)。
 
 本科专业页已接入 22 个学院（部）、76 个独立本科专业的原版翻面卡片；招生大类、拔尖班、双学士学位项目等仍在备注表中区分。维护入口及资料核对范围见 [专业卡片说明](./docs/major-mvp-sources.md)。
 
@@ -44,6 +50,8 @@ pnpm generate
 
 ## 修改位置
 
+课表扫码登录的本地实验模板：运行 `pnpm dev:login`（本机）或 `pnpm dev:login:lan`（局域网），访问终端地址的 `/previews/schedule-login`。包含学习通、学校微信、武科大助手三个分支，默认不启用服务端认证接口、不进入公开导航。三种方式已由用户确认可登录；学校分支已接入当前学期课表读取与备注解析；实现和验证边界见 [登录模板说明](docs/schedule-login-templates.md)。
+
 组件维护原则：优先直接复用原项目组件及依赖，只做必要的框架接口与主题适配；避免重写已有功能。原博客组件示例在 `/blog-components`，原始文件和集成说明见 `vendor/blog-v3/`。
 
 | 路径 | 用途 |
@@ -80,7 +88,7 @@ pnpm generate
 
 美食页 `/life/food` 已加入「吃在武科」店铺目录、店内菜单、口碑榜和公开评价；默认南苑，先选店铺再加载菜单。源码入口 `app/components/content/FoodDirectory.vue`。复用现有 Wiki 外壳和 Nuxt UI 组件。开发与本地静态预览自带只读接口代理；**纯静态托管需另配同源转发，不能只上传静态文件就宣称接入完成**。详见 [美食页面接入](docs/food-integration.md)。
 
-- 正式域名：`NUXT_SITE_URL`。
+- 正式构建设置 `NUXT_SITE_URL=https://wiki.wustacm.com`。课表 API 默认指向 `https://schedule.wiki.jianges.com`，可用 `NUXT_PUBLIC_SCHEDULE_API_BASE` 覆盖；静态页面配置变更后需重新生成。
 - 项目 GitHub 地址：`app/app.config.ts` 中将 `github: false` 改为实际仓库信息，再启用源文件编辑入口。当前不使用虚构仓库链接。
 - 首页保留了参考站的 `CO 导航` 外链，它属于西邮项目；如需 WUST 专属导航，修改首页按钮地址。
 - 所有 WUST 校园信息、联系人和外部办事入口须由维护者填写。

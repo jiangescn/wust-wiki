@@ -13,6 +13,7 @@ export default defineNuxtConfig({
   extends: ['docus'],
   runtimeConfig: {
     public: {
+      scheduleApiBase: process.env.WIKI_LOGIN_TEMPLATES === '1' ? '' : 'https://schedule.wiki.jianges.com',
       foodApiBase: process.env.NUXT_PUBLIC_FOOD_API_BASE || '/api/food',
       // The bridge owns GeeTest and the API call; this site only renders approved results.
       dormitoryEmbedUrl: process.env.NUXT_PUBLIC_DORMITORY_EMBED_URL || 'https://dorm.wustacm.com/embed',
