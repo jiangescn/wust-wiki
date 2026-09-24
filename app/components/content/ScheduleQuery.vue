@@ -50,13 +50,20 @@ function fail(cause: unknown) {
   view.value = { state: 'error', message: snapshot.value ? '本次未更新，仍显示上次保存的课表。' : '' }
   release(); sessionToken = ''; usedSession = false
 }
-function poll(ticket: number) {
+function poll(ticket: number, delay = 0) {
   cancelTimer()
   if (!pending.value || leaving || ticket !== generation) return
   pollTimer = setTimeout(async () => {
-    try { const data = await call('poll', ticket); if (!data) return; accept(data); poll(ticket) }
+    const startedAt = performance.now()
+    try {
+      const data = await call('poll', ticket)
+      if (!data) return
+      accept(data)
+      // Keep the server's 3-second minimum without adding network time each cycle.
+      poll(ticket, Math.max(0, 3100 - (performance.now() - startedAt)))
+    }
     catch (cause) { if (ticket === generation && !leaving) fail(cause) }
-  }, 3500)
+  }, delay)
 }
 async function start() {
   if (active.value) return
@@ -64,7 +71,13 @@ async function start() {
   expire(); error.value = ''; busy.value = true
   const ticket = ++generation
   view.value = { state: 'creating', message: '正在获取学校微信二维码…' }
-  try { await cleanup; if (ticket !== generation || leaving) return; const data = await call('start', ticket); if (data) { accept(data); poll(ticket) } }
+  try {
+    // Remote starts use a fresh bearer session; only the local cookie flow shares an owner.
+    if (!apiBase) await cleanup
+    if (ticket !== generation || leaving) return
+    const data = await call('start', ticket)
+    if (data) { accept(data); poll(ticket) }
+  }
   catch (cause) { if (ticket === generation && !leaving) fail(cause) }
   finally { if (ticket === generation) busy.value = false }
 }

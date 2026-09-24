@@ -17,7 +17,7 @@ Wiki 正式域名：**https://wiki.wustacm.com**，保持现有 Nuxt/Docus 静�
 | --- | --- | --- |
 | inspect | `{"action":"inspect"}` | 首次取得 `sessionToken`、登录方式和状态 |
 | start | `{"action":"start","provider":"wust"}` | 创建学校微信二维码 |
-| poll | `{"action":"poll"}` | 每 3.5 秒查询，成功时返回 `result` |
+| poll | `{"action":"poll"}` | 首次立即检查，之后按约 3.1 秒起始间隔串行查询，成功时返回 `result` |
 | clear | `{"action":"clear"}` | 取消并销毁当前会话 |
 
 首次请求后，将返回的 `sessionToken` 通过 `Authorization: Bearer <sessionToken>` 带回。使用 `credentials: 'omit'`，不要存入 URL、localStorage、日志或静态文件。它只是本服务随机生成、绑定来源且有效期十分钟的会话标识，**不是学校 Cookie、票据或密码**。401 表示会话失效，应清除标识后重新开始。不同页面会话隔离；清除后旧标识失效。

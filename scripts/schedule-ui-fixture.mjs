@@ -10,10 +10,11 @@ const lessons = [
   { name: '晚间课程', teacher: '', location: '在线', day: 7, sections: '12', weeks: '1-15单' },
 ]
 const counts = { start: 0, poll: 0, clear: 0 }
+let startedAt = 0, firstPollDelayMs
 let waitingView
 const server = createServer(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store')
-  if (req.url === '/stats') { res.setHeader('Content-Type','application/json'); res.end(JSON.stringify(counts)); return }
+  if (req.url === '/stats') { res.setHeader('Content-Type','application/json'); res.end(JSON.stringify({ ...counts, firstPollDelayMs })); return }
   if (!['http://127.0.0.1:4178','http://localhost:4178'].includes(req.headers.origin)) { res.writeHead(403).end(); return }
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin)
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -26,12 +27,16 @@ const server = createServer(async (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   if (mode === 'failure' && action === 'start') { res.writeHead(503).end(JSON.stringify({error:'fixture failure'})); return }
   if (action === 'start') {
+    startedAt = Date.now(); firstPollDelayMs = undefined
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><rect width="240" height="240" fill="white"/><text x="25" y="110" font-size="18">TEST ONLY - NO LOGIN</text></svg>'
     waitingView = {state:'waiting',message:'测试响应，不需要扫码。',qr:'data:image/svg+xml;base64,'+Buffer.from(svg).toString('base64'),expiresAt:Date.now()+(mode === 'expiry' ? 6000 : 180000),sessionToken:'a'.repeat(64)}
     res.end(JSON.stringify(waitingView))
-  } else if (action === 'poll' && mode === 'expiry') res.end(JSON.stringify(waitingView))
-  else if (action === 'poll' && mode === 'server-expiry') res.end(JSON.stringify({state:'expired',message:'测试服务端过期。'}))
-  else if (action === 'poll') res.end(JSON.stringify({state:'complete',message:'已读取虚构验收数据。',result:{provider:'wust',schoolYear:'2026-2027',semester:1,lessons,notes:['测试备注']}}))
+  } else if (action === 'poll') {
+    firstPollDelayMs ??= Date.now() - startedAt
+    if (mode === 'expiry') res.end(JSON.stringify(waitingView))
+    else if (mode === 'server-expiry') res.end(JSON.stringify({state:'expired',message:'测试服务端过期。'}))
+    else res.end(JSON.stringify({state:'complete',message:'已读取虚构验收数据。',result:{provider:'wust',schoolYear:'2026-2027',semester:1,lessons,notes:['测试备注']}}))
+  }
   else res.end(JSON.stringify({state:'idle',message:'已清除测试会话。'}))
 })
 server.listen(4259, '127.0.0.1', () => console.log('Schedule QA fixture http://127.0.0.1:4259'))

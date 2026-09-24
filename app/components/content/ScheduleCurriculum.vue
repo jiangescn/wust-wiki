@@ -1,6 +1,11 @@
 <script setup lang="ts">
 const route = useRoute()
 const sample = computed(() => route.query.schedule === 'sample')
+const apiBase = useRuntimeConfig().public.scheduleApiBase
+// Warm DNS/TLS while the static page loads, before the client-only login mounts.
+useHead(() => ({ link: !sample.value && apiBase.startsWith('https://')
+  ? [{ rel: 'preconnect', href: new URL(apiBase).origin, crossorigin: 'anonymous' }]
+  : [] }))
 </script>
 
 <template>
