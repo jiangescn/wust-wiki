@@ -13,3 +13,13 @@
 
 // The Docus shell already supplies the document gutter.
 .wiki-prose > .article { margin: 0; min-width: 0; }
+
+// Two classroom examples share the row without changing upstream CardList.
+:where(.blog-components) .card-list.classroom-cards > :is(ul, ol) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 600px) {
+  :where(.blog-components) .card-list.classroom-cards > :is(ul, ol) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

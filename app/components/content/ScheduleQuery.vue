@@ -20,6 +20,7 @@ let generation = 0
 let sessionToken = ''
 let usedSession = false
 let leaving = false
+let autoRefresh = false
 let cleanup: Promise<unknown> = Promise.resolve()
 const dateText = (value: number) => new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
 function cancelTimer() { if (pollTimer) clearTimeout(pollTimer); pollTimer = undefined }
@@ -37,11 +38,13 @@ async function call(action: 'start' | 'poll', ticket: number) {
 function accept(data: LoginView) {
   view.value = data
   if (data.state === 'complete') {
+    autoRefresh = false
     if (!save(data.result)) { view.value = { state: 'error', message: '返回的课表格式不完整，请前往学校教务系统查询。' } }
     release(); sessionToken = ''; usedSession = false
   }
 }
 function fail(cause: unknown) {
+  autoRefresh = false
   const status = (cause as { status?: number }).status
   error.value = status === 429 ? '请求较多，请一分钟后重试。' : status === 401 ? '扫码会话已到期，请重新生成二维码。' : '暂时无法连接课表服务，请稍后重试或前往学校教务系统。'
   view.value = { state: 'error', message: snapshot.value ? '本次未更新，仍显示上次保存的课表。' : '' }
@@ -57,6 +60,7 @@ function poll(ticket: number) {
 }
 async function start() {
   if (active.value) return
+  autoRefresh = true
   expire(); error.value = ''; busy.value = true
   const ticket = ++generation
   view.value = { state: 'creating', message: '正在获取学校微信二维码…' }
@@ -65,21 +69,33 @@ async function start() {
   finally { if (ticket === generation) busy.value = false }
 }
 function cancel() {
+  autoRefresh = false
   ++generation; cancelTimer(); release(); sessionToken = ''; usedSession = false; busy.value = false; error.value = ''
   view.value = { state: 'idle', message: snapshot.value ? '已取消同步，保留上次课表。' : '已取消扫码。' }
 }
-function forget() { cancel(); clearCache(); view.value = { state: 'idle', message: '本机保存的课表已清除。' } }
-function onExit() { ++generation; cancelTimer(); release(); sessionToken = ''; usedSession = false; busy.value = false; view.value = { state: 'idle', message: '' } }
+function forget() { cancel(); clearCache(); void start() }
+function onExit() { autoRefresh = false; ++generation; cancelTimer(); release(); sessionToken = ''; usedSession = false; busy.value = false; view.value = { state: 'idle', message: '' } }
+function onPageShow(event: PageTransitionEvent) { if (event.persisted && !snapshot.value && !active.value) void start() }
 function onStorage(event: StorageEvent) { if ((event.key === SCHEDULE_CACHE_KEY || event.key === null) && event.newValue === null) cancel() }
 onMounted(() => {
   window.addEventListener('pagehide', onExit)
+  window.addEventListener('pageshow', onPageShow)
   window.addEventListener('storage', onStorage)
+  if (!snapshot.value) void start()
   ticker = setInterval(() => {
     clock.value = Date.now()
-    if (pending.value && remaining.value === 0) { cancel(); view.value = { state: 'expired', message: '二维码已过期，请重新生成。' } }
+    if (pending.value && remaining.value === 0) {
+      const refresh = autoRefresh
+      cancel(); autoRefresh = refresh
+      view.value = { state: 'expired', message: '二维码已过期，请重新生成。' }
+    }
+    if (autoRefresh && view.value.state === 'expired' && !document.hidden && !busy.value) {
+      cancel()
+      void start()
+    }
   }, 1000)
 })
-onBeforeUnmount(() => { leaving = true; onExit(); if (ticker) clearInterval(ticker); window.removeEventListener('pagehide', onExit); window.removeEventListener('storage', onStorage) })
+onBeforeUnmount(() => { leaving = true; onExit(); if (ticker) clearInterval(ticker); window.removeEventListener('pagehide', onExit); window.removeEventListener('pageshow', onPageShow); window.removeEventListener('storage', onStorage) })
 </script>
 
 <template>

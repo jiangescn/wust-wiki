@@ -11,7 +11,6 @@ const sample = computed(() => route.query.schedule === 'sample')
       <ScheduleGridPrototype />
     </template>
     <template v-else>
-      <NuxtLink to="/study/curriculum?schedule=sample">查看示例课表 →</NuxtLink>
       <ScheduleQuery />
     </template>
   </div>
