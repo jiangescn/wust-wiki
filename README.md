@@ -38,11 +38,13 @@ Docus 文档站基础框架。沿用西邮 Wiki 的分类与路径结构，按�
 
 普通 Markdown 正文与博客示例共享原博客排版、链接、行内代码、代码块和表格渲染；接入入口为 `app/utils/blog-prose.ts` 和 `app/pages/[[lang]]/[...slug].vue`，页面外壳仍沿用 Docus。
 
-普通文档页的侧栏提供“补充与纠正”入口，提示“信息有误或缺漏？欢迎补充。”，链接到本项目 `https://github.com/jiangescn/wust-wiki/issues`。直接复用原博客 `BlogLinkCard`，由 `app/components/docs/DocsArticleAside.vue` 装配；桌面显示在右侧目录下方，侧栏随整页滚动，不设置独立滚动区域，手机显示在正文前。文章已有 `meta-aside-contribute` 时使用其专用入口（例如“补充培养方案”），不重复显示通用卡片。
+普通文档页的侧栏提供“补充与纠正”入口，提示“信息有误或缺漏？欢迎补充。”，链接到本项目 `https://github.com/jiangescn/wust-wiki/issues`。直接复用原博客 `BlogLinkCard`，由 `app/components/docs/DocsArticleAside.vue` 装配；桌面显示在右侧目录下方；侧栏固定在页头下方，超出视口时内部滚动并隐藏滚动条。手机显示在正文前。文章已有 `meta-aside-contribute` 时使用其专用入口（例如“补充培养方案”），不重复显示通用卡片。
 
 页面动效：`app/app.vue` 直接使用 Nuxt 页面过渡，全站跳转淡入；自行实现的 `app/components/WikiMotion.vue` 为成绩、绩点、课表、竞赛和美食查询提供 220ms 高度衔接，课表视图切换使用 160ms 淡入。不会为动画重新挂载查询组件，也不延迟请求。原博客、Coder 卡片及 Nuxt UI 弹窗继续复用原动画。原生折叠区在支持 `::details-content` 的浏览器中渐进增强；系统减少动态效果时取消动画。本次变化见站内更新日志。
 
 ## 本地开发
+
+目录锚点滚动由 `app/plugins/anchor-scroll.client.ts` 设置 Nuxt 内置的 `scrollBehaviorType`：默认平滑滚动，跟随系统“减少动态效果”切换为直接定位。普通文档继续使用 Docus / Nuxt UI 目录，组件示例的目录通过 `NuxtLink` 接入同一路由行为；保留 Nuxt 的标题偏移、页面回顶及历史位置恢复。
 
 需要 Node.js 24 LTS（>=24.11）和 pnpm 11。
 

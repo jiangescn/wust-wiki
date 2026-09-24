@@ -166,10 +166,21 @@ addPrerenderPath(`/raw${route.path}.md`)
 
 <style scoped>
 @media (min-width: 1024px) {
-  .wiki-doc-aside { min-width: 0; align-self: start; }
+  .wiki-doc-aside {
+    min-width: 0;
+    align-self: start;
+    position: sticky;
+    top: var(--ui-header-height);
+    max-height: calc(100dvh - var(--ui-header-height) - 1rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .wiki-doc-aside::-webkit-scrollbar { display: none; }
   .wiki-doc-aside > .wiki-article-aside { margin-top: 1rem; }
-  /* Long directories follow the page, without a second scroll area. */
-  .wiki-doc-aside :deep(.wiki-doc-toc > nav) { position: static; max-height: none; overflow: visible; }
+  /* The outer sidebar owns scrolling; avoid nested TOC scroll areas. */
+  .wiki-doc-aside :deep(.wiki-doc-toc > nav) { position: static; max-height: none; margin-inline: 0; padding-inline: 0; overflow: visible; }
   .wiki-doc-aside :deep(.wiki-doc-toc [data-slot="content"]) { overflow: visible; }
 }
 </style>

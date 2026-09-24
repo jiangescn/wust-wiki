@@ -69,6 +69,8 @@ Coder 组件移植已在博客组件迁移后完成。运行副本在 `app/xupt/
 
 文档导航在 `app/app.vue` 查询后递归添加 `exact: true`，使用 Nuxt UI 原生精确匹配。不要移除：默认非精确匹配会让 `/campus` 的“学校简介”在 `/campus/anti-fraud` 等子页同时高亮，学习/生活分类同理。`scripts/qa-navigation.cjs` 是对应浏览器回归检查，验证直接访问、栏目切换和前进后退仅高亮当前文档；需要 Playwright、Edge 和 `WIKI_QA_URL` 指定的预览服务。
 
+文章右侧目录在桌面固定于页头下方，长目录由外层侧栏内部滚动并隐藏滚动条；不要恢复嵌套滚动容器。`app/plugins/anchor-scroll.client.ts` 使用 Nuxt 的 `scrollBehaviorType` 实现平滑锚点定位，并响应减少动态效果偏好。组件示例目录使用 `NuxtLink` 接入相同行为。
+
 ## 5. 博客组件的接入约定
 
 - 普通文档正文现由 `app/pages/[[lang]]/[...slug].vue` 接入博客渲染。该文件复用 Docus 5.13.0 页面外壳，仅调整正文及本地类型/查询键；升级 Docus 时对照上游。共享基础 Markdown 映射在 `app/utils/blog-prose.ts`，作用于普通正文和完整示例。正文使用 `.blog-components .article.md-tech`、关闭默认 Prose 映射并保留段落和标题组件。不要恢复为裸 ContentRenderer，否则会回到 Docus 默认排版。
