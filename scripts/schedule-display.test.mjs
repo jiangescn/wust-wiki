@@ -42,6 +42,16 @@ test('campus timetable preserves supplied morning differences and never invents 
   assert.deepEqual(campusTimes.huangjiahu.slice(4), campusTimes.qingshan.slice(4))
   assert.equal(campusTimes.huangjiahu[10], undefined)
 })
+
+test('different courses get unique colors beyond six, independent of response order', () => {
+  const lessons = Array.from({ length: 40 }, (_, i) => ({ name: `课程 ${i}` }))
+  const courses = normalizeCourses([...lessons, { name: '课程 0' }, { name: ' 课程 0 ' }])
+  assert.equal(new Set(courses.slice(0, 40).map(course => course.color)).size, 40)
+  assert.equal(courses[0].color, courses[40].color)
+  assert.equal(courses[0].color, courses[41].color)
+  const reversed = new Map(normalizeCourses([...lessons].reverse()).map(course => [course.name, course.color]))
+  for (const course of courses.slice(0, 40)) assert.equal(course.color, reversed.get(course.name))
+})
 test('seven-day cache projects course fields, never credentials, and expires at fixed boundary', () => {
   const now = 1000000000
   const snapshot = makeSnapshot({ provider:'wust', schoolYear:'2026-2027', semester:1, sessionToken:'SECRET', cookie:'SECRET', lessons:[{name:'测试课',teacher:'测试教师',location:'测试教室',day:1,sections:'1-2',weeks:'1-16',password:'SECRET'}], notes:['测试备注'] }, now)

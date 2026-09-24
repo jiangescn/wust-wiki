@@ -53,14 +53,15 @@ export function lessonSlots(lesson: ScheduleLesson): number[][] | null {
   }
   return slots
 }
-export type Course = ScheduleLesson & { id: string; slots: number[][]; weekNumbers: number[] | null; color: string; validTime: boolean }
+export type Course = ScheduleLesson & { id: string; slots: number[][]; weekNumbers: number[] | null; color: number; validTime: boolean }
 export function normalizeCourses(lessons: ScheduleLesson[]): Course[] {
-  const colors = ['blue', 'purple', 'teal', 'amber', 'rose', 'lime']
+  // Allocate across the full term, not the selected week. Sorting makes API order irrelevant.
+  // Golden-angle spacing keeps adjacent allocations apart; no six-color modulo collisions.
+  const names = [...new Set(lessons.map(lesson => lesson.name.trim()))].sort()
+  const colors = new Map(names.map((name, index) => [name, ((215000 + index * 137508) % 360000) / 1000]))
   return lessons.map((lesson, index) => {
-    let hash = 0
-    for (const char of lesson.name) hash = (Math.imul(hash, 31) + char.charCodeAt(0)) >>> 0
     const slots = lessonSlots(lesson)
-    return { ...lesson, id: `course-${index}`, slots: slots || [], weekNumbers: parseWeeks(lesson.weeks), color: colors[hash % colors.length]!, validTime: Boolean(slots && Number.isInteger(lesson.day) && lesson.day! >= 1 && lesson.day! <= 7) }
+    return { ...lesson, id: `course-${index}`, slots: slots || [], weekNumbers: parseWeeks(lesson.weeks), color: colors.get(lesson.name.trim())!, validTime: Boolean(slots && Number.isInteger(lesson.day) && lesson.day! >= 1 && lesson.day! <= 7) }
   })
 }
 export type CourseBlock = { course: Course; start: number; end: number; lane: number; lanes: number }

@@ -61,7 +61,7 @@ onMounted(() => {
             <div class="day-heading" :class="{ weekend: index > 4 }">{{ weekdays[index] }}</div>
             <div class="day-grid" >
               <div v-for="n in sectionCount" :key="`cell-${n}`" class="grid-cell" :class="{ 'session-start': n === 5 || n === 9 }" :style="{ gridRow: n, gridColumn: '1 / -1' }" aria-hidden="true" />
-              <button v-for="block in grid" :key="`${block.course.id}-${block.start}`" class="course-card" :class="[`tone-${block.course.color}`, { compact: block.start === block.end }]" :style="{ gridRow: `${block.start} / ${block.end + 1}`, gridColumn: 1, width: `calc(${100 / block.lanes}% - 6px)`, marginLeft: `calc(${100 * block.lane / block.lanes}% + 3px)` }" :aria-label="`${block.course.name}，${weekdays[index]}，第${sectionLabel(block.course)}节，查看详情`" @click="openDetail(block.course)"><strong>{{ block.course.name }}</strong><span>{{ block.course.location || "未提供地点" }}</span><small>{{ block.course.weeks || "周次待确认" }}</small></button>
+              <button v-for="block in grid" :key="`${block.course.id}-${block.start}`" class="course-card" :class="{ compact: block.start === block.end }" :style="{ '--course-hue': block.course.color, gridRow: `${block.start} / ${block.end + 1}`, gridColumn: 1, width: `calc(${100 / block.lanes}% - 6px)`, marginLeft: `calc(${100 * block.lane / block.lanes}% + 3px)` }" :aria-label="`${block.course.name}，${weekdays[index]}，第${sectionLabel(block.course)}节，查看详情`" @click="openDetail(block.course)"><strong>{{ block.course.name }}</strong><span>{{ block.course.location || "未提供地点" }}</span><small>{{ block.course.weeks || "周次待确认" }}</small></button>
             </div>
           </div>
         </div>
@@ -70,7 +70,7 @@ onMounted(() => {
     <template v-else>
       <div class="day-switch" role="group" aria-label="选择星期"><button v-for="(label, index) in weekdays" :key="label" :aria-pressed="day === index + 1" @click="day = index + 1"><span>{{ label }}</span><small>{{ visible.filter(course => course.day === index + 1).length }} 门</small></button></div>
       <div class="agenda">
-        <button v-for="course in dayCourses" :key="course.id" class="agenda-card" :class="`tone-${course.color}`" @click="openDetail(course)"><span class="agenda-time"><b>{{ sectionLabel(course) }} 节</b><small>{{ courseTime(course) }}</small></span><span class="agenda-body"><strong>{{ course.name }}</strong><span>{{ course.location || "未提供地点" }}</span><small>{{ course.weeks || "周次待确认" }}</small></span><span aria-hidden="true">↗</span></button>
+        <button v-for="course in dayCourses" :key="course.id" class="agenda-card" :style="{ '--course-hue': course.color }" @click="openDetail(course)"><span class="agenda-time"><b>{{ sectionLabel(course) }} 节</b><small>{{ courseTime(course) }}</small></span><span class="agenda-body"><strong>{{ course.name }}</strong><span>{{ course.location || "未提供地点" }}</span><small>{{ course.weeks || "周次待确认" }}</small></span><span aria-hidden="true">↗</span></button>
         <div v-if="!dayCourses.length" class="empty-day">这一天没有安排课程<span>{{ week ? `第 ${week} 周` : "全部课程" }} · {{ weekdays[day - 1] }}</span></div>
       </div>
     </template>
@@ -113,18 +113,8 @@ select { border: 1px solid var(--ui-border); background: var(--ui-bg); color: va
 .course-card strong { font-size: .78rem; line-height: 1.45; font-weight: 650; }
 .course-card span { font-size: .65rem; line-height: 1.35; }
 .course-card small { font-size: .6rem; opacity: .8; margin-top: auto; }
-.tone-blue { --course-color: #4585cf; --course-bg: #e9f1ff; --course-text: #244d80; }
-.tone-purple { --course-color: #9570c9; --course-bg: #f0eafa; --course-text: #61448b; }
-.tone-teal { --course-color: #309d92; --course-bg: #e2f4ef; --course-text: #236a61; }
-.tone-amber { --course-color: #cc9940; --course-bg: #fff3dd; --course-text: #85601f; }
-.tone-rose { --course-color: #cb6b86; --course-bg: #fbe9ef; --course-text: #923e5a; }
-.tone-lime { --course-color: #839c49; --course-bg: #eef3e0; --course-text: #546d28; }
-:global(.dark .schedule-board .tone-blue) { --course-bg: #25344c; --course-text: #bad4fb; }
-:global(.dark .schedule-board .tone-purple) { --course-bg: #362d49; --course-text: #dfc8ff; }
-:global(.dark .schedule-board .tone-teal) { --course-bg: #203e3a; --course-text: #b0dfd1; }
-:global(.dark .schedule-board .tone-amber) { --course-bg: #443b28; --course-text: #eed4a4; }
-:global(.dark .schedule-board .tone-rose) { --course-bg: #482d37; --course-text: #f1b9cd; }
-:global(.dark .schedule-board .tone-lime) { --course-bg: #333d25; --course-text: #d0dda9; }
+.course-card, .agenda-card { --course-color: hsl(var(--course-hue) 48% 44%); --course-bg: hsl(var(--course-hue) 60% 94%); --course-text: hsl(var(--course-hue) 45% 27%); }
+:global(.dark .schedule-board .course-card), :global(.dark .schedule-board .agenda-card) { --course-color: hsl(var(--course-hue) 48% 58%); --course-bg: hsl(var(--course-hue) 24% 20%); --course-text: hsl(var(--course-hue) 60% 82%); }
 .schedule-board strong { background: none; }
 .schedule-notes { margin: 0 1.25rem; padding: .8rem 0; border-top: 1px solid var(--ui-border); font-size: .8rem; }
 .schedule-notes summary { cursor: pointer; }
