@@ -12,6 +12,15 @@ export const campusTimes = {
 }
 export type Campus = keyof typeof campusTimes
 
+// User-defined calendar: 2026-2027 autumn term starts Monday, 2026-08-31 (China time).
+export function currentTeachingWeek(result: Pick<ScheduleResult, 'schoolYear' | 'semester'>, now = Date.now()): number | null {
+  if (result.schoolYear && result.schoolYear !== '2026-2027') return null
+  if (result.semester && result.semester !== 1) return null
+  const start = Date.parse('2026-08-31T00:00:00+08:00')
+  if (now < start || now >= Date.parse('2027-08-31T00:00:00+08:00') || !Number.isFinite(now)) return null
+  return Math.floor((now - start) / (7 * 24 * 60 * 60 * 1000)) + 1
+}
+
 /** null means unknown, never silently interpret unknown rules as no classes. */
 export function parseWeeks(source?: string): number[] | null {
   if (!source || source.length > 300) return null

@@ -1,6 +1,19 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseWeeks, lessonSlots, normalizeCourses, layoutDay, makeSnapshot, readSnapshot, SCHEDULE_TTL, campusTimes } from '../app/utils/schedule.ts'
+import { parseWeeks, lessonSlots, normalizeCourses, layoutDay, makeSnapshot, readSnapshot, SCHEDULE_TTL, campusTimes, currentTeachingWeek } from '../app/utils/schedule.ts'
+
+test('current teaching week follows the specified August 31 start and China-time Monday boundaries', () => {
+  const term = { schoolYear: '2026-2027', semester: 1 }
+  const at = date => currentTeachingWeek(term, Date.parse(date))
+  assert.equal(at('2026-08-30T23:59:59+08:00'), null)
+  assert.equal(at('2026-08-31T00:00:00+08:00'), 1)
+  assert.equal(at('2026-09-06T15:59:59Z'), 1)
+  assert.equal(at('2026-09-06T16:00:00Z'), 2)
+  assert.equal(at('2026-09-24T00:00:00+08:00'), 4)
+  assert.equal(at('2027-08-31T00:00:00+08:00'), null)
+  assert.equal(currentTeachingWeek({ schoolYear: '2025-2026', semester: 1 }, Date.parse('2026-09-24')), null)
+  assert.equal(currentTeachingWeek({ ...term, semester: 2 }, Date.parse('2027-03-01')), null)
+})
 
 test('teaching weeks parse sparse ranges and parity, unknown rules stay unknown', () => {
   assert.deepEqual(parseWeeks('2,4-5'), [2, 4, 5])

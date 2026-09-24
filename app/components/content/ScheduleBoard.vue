@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { campusTimes, weekdays, normalizeCourses, layoutDay, type Campus, type Course, type ScheduleResult } from '~/utils/schedule'
+import { campusTimes, weekdays, normalizeCourses, layoutDay, currentTeachingWeek, type Campus, type Course, type ScheduleResult } from '~/utils/schedule'
 const props = withDefaults(defineProps<{ result: ScheduleResult; demo?: boolean }>(), { demo: false })
 const campus = ref<Campus>('huangjiahu')
-const week = ref(0)
+const now = useNow({ interval: 60_000 })
+const currentWeek = computed(() => props.demo ? null : currentTeachingWeek(props.result, now.value.getTime()))
+const week = ref(props.demo ? 4 : currentWeek.value ?? 0)
 const mode = ref<'week' | 'day'>('day')
 const day = ref(1)
 const detail = ref<Course>()
 const detailOpen = ref(false)
 const courses = computed(() => normalizeCourses(props.result.lessons))
-const maxWeek = computed(() => Math.max(1, ...courses.value.flatMap(course => course.weekNumbers || [])))
+const maxWeek = computed(() => Math.max(1, currentWeek.value ?? 0, ...courses.value.flatMap(course => course.weekNumbers || [])))
 const visible = computed(() => courses.value.filter(course => course.validTime && (week.value === 0 || course.weekNumbers?.includes(week.value))))
 const unplaced = computed(() => courses.value.filter(course => !course.validTime || (week.value !== 0 && course.weekNumbers === null)))
 const dayCourses = computed(() => visible.value.filter(course => course.day === day.value).sort((a, b) => a.slots[0]![0]! - b.slots[0]![0]!))
@@ -25,34 +27,33 @@ function courseTime(course: Course) {
 }
 function openDetail(course: Course) { detail.value = course; detailOpen.value = true }
 function changeWeek(delta: number) { week.value = Math.max(1, Math.min(maxWeek.value, week.value + delta)) }
-watch(() => props.result, () => { week.value = 0; detailOpen.value = false })
-watch(campus, value => { if (!props.demo) { try { localStorage.setItem('wust-wiki:schedule:campus', value) } catch {} } })
+watch(() => props.result, () => { week.value = props.demo ? 4 : currentWeek.value ?? 0; detailOpen.value = false })
+watch(currentWeek, (value, previous) => { if (week.value === previous) week.value = value ?? 0 })
 onMounted(() => {
   day.value = new Date().getDay() || 7
   if (props.demo) { week.value = 4; day.value = 1 }
   if (!window.matchMedia('(max-width: 639px)').matches) mode.value = 'week'
-  try { const value = localStorage.getItem('wust-wiki:schedule:campus'); if (value === 'huangjiahu' || value === 'qingshan') campus.value = value } catch {}
 })
 </script>
 
 <template>
   <section class="schedule-board" aria-label="学校课表">
     <div class="board-heading">
-      <div><span class="eyebrow">WEEKLY SCHEDULE</span><h3>{{ demo ? "课表样例" : "我的课表" }}</h3><p>{{ demo ? "虚构课程 · 仅用于预览排版" : [result.schoolYear ? result.schoolYear + " 学年" : "当前学期", result.semester ? "第 " + result.semester + " 学期" : ""].filter(Boolean).join(" · ") }}</p></div>
+      <div><h3>{{ demo ? "课表样例" : "我的课表" }}</h3><p>{{ demo ? "虚构课程 · 仅用于预览排版" : [result.schoolYear ? result.schoolYear + " 学年" : "当前学期", result.semester ? "第 " + result.semester + " 学期" : ""].filter(Boolean).join(" · ") }}</p></div>
       <label class="campus-select">作息校区<select v-model="campus" aria-label="作息校区"><option value="huangjiahu">黄家湖校区</option><option value="qingshan">青山校区</option></select></label>
     </div>
     <div class="toolbar">
       <div class="week-switch">
         <UButton color="neutral" variant="ghost" aria-label="上一周" :disabled="week <= 1" @click="changeWeek(-1)">‹</UButton>
-        <select v-model.number="week" aria-label="教学周"><option :value="0">全部课程</option><option v-for="w in maxWeek" :key="w" :value="w">第 {{ w }} 周</option></select>
+        <select v-model.number="week" aria-label="教学周"><option :value="0">全部课程</option><option v-for="w in maxWeek" :key="w" :value="w">第 {{ w }} 周{{ w === currentWeek ? " · 本周" : "" }}</option></select>
         <UButton color="neutral" variant="ghost" aria-label="下一周" :disabled="week >= maxWeek" @click="changeWeek(1)">›</UButton>
       </div>
+      <UButton v-if="currentWeek && week !== currentWeek" color="neutral" variant="ghost" @click="week = currentWeek">本周</UButton>
       <span class="course-count">{{ visible.length }} 条排课</span>
       <div class="view-switch" role="group" aria-label="课表视图"><button :aria-pressed="mode === 'week'" @click="mode = 'week'">周课表</button><button :aria-pressed="mode === 'day'" @click="mode = 'day'">按日列表</button></div>
     </div>
-    <p class="week-hint">{{ week ? `手选第 ${week} 周 · 不代表当前教学周` : "全部课程包含不同教学周的排课，请选择教学周查看当周安排。" }}</p>
     <template v-if="mode === 'week'">
-      <p class="mobile-hint">左右滑动查看整周，点击课程查看详情。</p>
+      <p class="mobile-hint">左右滑动查看整周</p>
       <div class="grid-scroll" tabindex="0" role="region" aria-label="一周课表，可横向滚动">
         <div class="week-grid" :style="{ '--sections': sectionCount, gridTemplateColumns: gridColumns }">
           <div class="time-column"><div class="day-heading">节次</div><div v-for="n in sectionCount" :key="n" class="time-cell" :class="{ 'session-start': n === 5 || n === 9 }"><b>{{ String(n).padStart(2, '0') }}</b><span v-if="timing(n)">{{ timing(n)?.[0] }}<br>{{ timing(n)?.[1] }}</span><span v-else>待补充</span></div></div>
@@ -73,11 +74,9 @@ onMounted(() => {
         <div v-if="!dayCourses.length" class="empty-day">这一天没有安排课程<span>{{ week ? `第 ${week} 周` : "全部课程" }} · {{ weekdays[day - 1] }}</span></div>
       </div>
     </template>
-    <div class="board-footer"><span>点击课程查看教师、节次和周次</span><span>{{ campus === 'huangjiahu' ? '黄家湖' : '青山' }}作息</span></div>
-    <div v-if="unplaced.length" class="schedule-notes"><h4>时间或周次待确认（{{ unplaced.length }} 条）</h4><p>以下课程未隐藏，请查看原始安排。</p><button v-for="course in unplaced" :key="course.id" class="unplaced-course" @click="openDetail(course)">{{ course.name }} · {{ course.weeks || '未提供周次' }} · {{ course.sections || '未提供节次' }} ↗</button></div>
+    <div v-if="unplaced.length" class="schedule-notes"><h4>时间或周次待确认（{{ unplaced.length }} 条）</h4><button v-for="course in unplaced" :key="course.id" class="unplaced-course" @click="openDetail(course)">{{ course.name }} · {{ course.weeks || '未提供周次' }} · {{ course.sections || '未提供节次' }} ↗</button></div>
     <details v-if="result.notes?.length" class="schedule-notes"><summary>教务备注 <span>{{ result.notes.length }}</span></summary><ul><li v-for="(note, index) in result.notes" :key="index">{{ note }}</li></ul></details>
-    <p class="prototype-note">校区切换仅调整作息时间。第 11 节及以后的时刻待补充；停调课以教务通知为准。</p>
-    <UModal v-model:open="detailOpen" :title="detail?.name || '课程详情'" :description="demo ? '虚构课程，仅用于预览交互。' : '课程信息来自学校教务系统。'">
+    <UModal v-model:open="detailOpen" :title="detail?.name || '课程详情'" :description="demo ? '虚构课程' : '课程详情'">
       <template #body><dl v-if="detail" class="course-details"><dt>教师</dt><dd>{{ detail.teacher || "未提供" }}</dd><dt>地点</dt><dd>{{ detail.location || "未提供" }}</dd><dt>上课安排</dt><dd>{{ detail.day ? weekdays[detail.day - 1] : "星期待确认" }} · 第 {{ sectionLabel(detail) }} 节</dd><dt>对应时间</dt><dd>{{ courseTime(detail) }}</dd><dt>教学周</dt><dd>{{ detail.weeks || "未提供" }}</dd><dt>作息校区</dt><dd>{{ campus === 'huangjiahu' ? '黄家湖校区' : '青山校区' }}</dd></dl></template>
     </UModal>
   </section>
@@ -86,12 +85,11 @@ onMounted(() => {
 <style scoped>
 .schedule-board { --slot-height: 66px; border: 1px solid var(--ui-border); border-radius: 16px; background: var(--ui-bg); overflow: hidden; min-width: 0; margin-bottom: 2rem; }
 .board-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1.4rem 1.25rem 1rem; }
-.eyebrow { font-size: .65rem; font-weight: 700; letter-spacing: .18em; color: var(--ui-primary); }
 .board-heading h3 { font-size: 1.3rem; margin: .35rem 0 !important; font-weight: 700; }
-.board-heading p, .week-hint { color: var(--ui-text-muted); font-size: .8rem; margin: 0; }
+.board-heading p { color: var(--ui-text-muted); font-size: .8rem; margin: 0; }
 .campus-select { font-size: .7rem; color: var(--ui-text-muted); display: flex; flex-direction: column; gap: .3rem; }
 select { border: 1px solid var(--ui-border); background: var(--ui-bg); color: var(--ui-text); border-radius: 7px; padding: .45rem .6rem; font: inherit; font-size: .85rem; }
-.toolbar { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; padding: 0 1.25rem; }
+.toolbar { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; padding: 0 1.25rem 1rem; }
 .week-switch { display: flex; align-items: center; gap: .2rem; }
 .week-switch select { font-weight: 650; border: none; }
 .week-switch button { font-size: 1.3rem; padding: .1rem .6rem; }
@@ -99,7 +97,6 @@ select { border: 1px solid var(--ui-border); background: var(--ui-bg); color: va
 .view-switch { display: flex; margin-left: auto; background: var(--ui-bg-elevated); border-radius: 8px; padding: 3px; }
 .view-switch button { padding: .35rem .7rem; font-size: .8rem; border-radius: 6px; cursor: pointer; }
 .view-switch button[aria-pressed=true] { background: var(--ui-bg); color: var(--ui-primary); box-shadow: 0 1px 4px #00000012; }
-.week-hint { padding: .65rem 1.25rem 1rem; }
 .grid-scroll { overflow: auto; max-width: 100%; border-block: 1px solid var(--ui-border); }
 .week-grid { display: grid; grid-template-columns: 64px repeat(7, minmax(92px, 1fr)); min-width: 708px; }
 .time-column { position: sticky; left: 0; z-index: 2; background: var(--ui-bg); box-shadow: 1px 0 var(--ui-border); }
@@ -129,12 +126,10 @@ select { border: 1px solid var(--ui-border); background: var(--ui-bg); color: va
 :global(.dark .schedule-board .tone-rose) { --course-bg: #482d37; --course-text: #f1b9cd; }
 :global(.dark .schedule-board .tone-lime) { --course-bg: #333d25; --course-text: #d0dda9; }
 .schedule-board strong { background: none; }
-.board-footer { display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; padding: .75rem 1.25rem; font-size: .7rem; color: var(--ui-text-muted); }
 .schedule-notes { margin: 0 1.25rem; padding: .8rem 0; border-top: 1px solid var(--ui-border); font-size: .8rem; }
 .schedule-notes summary { cursor: pointer; }
 .schedule-notes summary span { color: var(--ui-text-muted); margin-left: .4rem; }
 .schedule-notes ul { padding-left: 1.2rem; }
-.prototype-note { font-size: .72rem; color: var(--ui-text-muted); padding: 0 1.25rem 1rem; margin: 0; }
 .day-switch { display: grid; grid-template-columns: repeat(7, 1fr); padding: 0 1rem 1rem; gap: 3px; }
 .day-switch button { display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: .6rem 0; border-radius: 9px; cursor: pointer; font-size: .75rem; }
 .day-switch button small { font-size: .65rem; color: var(--ui-text-muted); }
@@ -165,7 +160,6 @@ button:focus-visible, select:focus-visible, .grid-scroll:focus-visible { outline
   .toolbar { gap: .5rem; }
   .view-switch { width: 100%; margin: .2rem 0 0; }
   .view-switch button { flex: 1; }
-  .week-hint { padding-inline: 1rem; }
   .mobile-hint { display: block; margin: 0; padding: 0 1rem .75rem; font-size: .7rem; color: var(--ui-text-muted); }
   .agenda-card { gap: .65rem; padding: .8rem; }
   .agenda-time { flex-basis: 72px; }

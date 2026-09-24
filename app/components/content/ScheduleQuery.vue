@@ -12,6 +12,7 @@ const clock = ref(Date.now())
 const pending = computed(() => ['waiting', 'scanned'].includes(view.value.state))
 const active = computed(() => busy.value || pending.value)
 const remaining = computed(() => Math.max(0, Math.ceil(((view.value.expiresAt || 0) - clock.value) / 1000)))
+const statusMessage = computed(() => ['error', 'expired', 'needs_action', 'needs_adapter', 'throttled'].includes(view.value.state) ? view.value.message : '')
 const labels: Record<string, string> = { idle: '微信扫码', creating: '正在生成', waiting: '等待扫码', scanned: '等待确认', complete: '同步完成', needs_action: '请前往官网', needs_adapter: '暂无法读取', error: '连接失败', expired: '二维码过期', throttled: '请稍后' }
 let pollTimer: ReturnType<typeof setTimeout> | undefined
 let ticker: ReturnType<typeof setInterval> | undefined
@@ -89,17 +90,15 @@ onBeforeUnmount(() => { leaving = true; onExit(); if (ticker) clearInterval(tick
       <UButton v-if="snapshot" color="neutral" variant="ghost" @click="forget">清除本机课表</UButton>
       <a href="https://bkjx.wust.edu.cn/jsxsd/framework/xsMain.jsp" target="_blank" rel="noopener noreferrer">学校教务系统 ↗</a>
     </div>
-    <p v-if="snapshot" class="cache-status">上次同步 {{ dateText(snapshot.fetchedAt) }} · 本机保留至 {{ dateText(snapshot.expiresAt) }}</p>
-    <p v-else class="query-description">使用已绑定学校账号的微信扫码，无需输入密码。成功后课表在此浏览器保留七天，可随时清除。</p>
-    <p class="privacy-note">仅保存课程信息，不保存学校登录凭据。公用设备使用后请清除课表。</p>
+    <p v-if="snapshot" class="cache-status">同步于 {{ dateText(snapshot.fetchedAt) }} · 有效至 {{ dateText(snapshot.expiresAt) }}</p>
     <p v-if="notice" role="status" class="cache-notice">{{ notice }}</p>
     <p v-if="error" role="alert" class="query-error">{{ error }}</p>
-    <div v-if="active || view.state === 'expired'" class="scan-panel">
+    <div v-if="active" class="scan-panel">
       <UBadge color="neutral" variant="subtle">{{ labels[view.state] || view.state }}</UBadge>
       <img v-if="view.qr && pending" :src="view.qr" alt="学校微信登录二维码" width="240" height="240" referrerpolicy="no-referrer">
-      <p v-if="pending">使用微信扫码并确认 · 剩余 {{ remaining }} 秒</p>
+      <p v-if="pending">微信扫码 · {{ remaining }} 秒</p>
     </div>
-    <p v-if="view.message" role="status" aria-live="polite">{{ view.message }}</p>
+    <p v-if="statusMessage" role="status" aria-live="polite">{{ statusMessage }}</p>
     <ScheduleBoard v-if="snapshot" :result="snapshot.result" />
   </div>
 </template>
@@ -108,8 +107,7 @@ onBeforeUnmount(() => { leaving = true; onExit(); if (ticker) clearInterval(tick
 .school-schedule { min-width: 0; max-width: 100%; margin: 1rem 0 2rem; }
 .query-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; }
 .query-toolbar a { font-size: .8rem; color: var(--ui-primary); margin-left: auto; }
-.query-description, .cache-status { font-size: .85rem; margin: .9rem 0 .4rem; }
-.privacy-note { color: var(--ui-text-muted); font-size: .75rem; margin: .4rem 0 1rem; }
+.cache-status { font-size: .85rem; margin: .9rem 0 .4rem; }
 .query-error { color: var(--ui-error); }
 .cache-notice { font-size: .8rem; color: var(--ui-text-muted); }
 .scan-panel { display: flex; flex-direction: column; align-items: center; gap: .75rem; padding: 1rem; border: 1px solid var(--ui-border); border-radius: 12px; margin-top: 1rem; }
