@@ -22,6 +22,8 @@
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
     "check:content": "node scripts/check-content.mjs",
+    "build:curricula": "node scripts/build-curricula-catalog.mjs",
+    "check:curricula": "node scripts/build-curricula-catalog.mjs --check",
     "check:xupt": "node scripts/check-xupt-source.mjs"
   },
   "dependencies": {

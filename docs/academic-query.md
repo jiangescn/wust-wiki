@@ -5,7 +5,7 @@
 ## 页面与数据
 
 - `/study/grades`：`content/2.study/3.grades.md` 装配 `GradeQuery.vue`，查询、学期筛选、课程搜索、成绩表及原有学分绩点说明。
-- `/study/gpa`：`app/pages/study/gpa.vue` 跳转到合并页；静态生成输出 meta refresh。首页仍保持 15 个入口，原学分绩点卡改指向成绩与绩点，侧栏只保留一个条目。
+- `/study/gpa`：`app/pages/study/gpa.vue` 跳转到合并页；静态生成输出 meta refresh。原学分绩点卡改指向成绩与绩点，侧栏只保留一个条目。
 - `/study/curriculum`：`AcademicSchedule.vue` 复用原 `ScheduleBoard.vue` 和七天课程缓存。先加载缓存再装配扫码组件，避免已有课表时抢先生成二维码。
 - `SchoolAcademicQuery.vue` 共用登录、串行轮询、退出、恢复和错误处理。首次立即轮询，后续约 3.1 秒起始间隔；有效课表缓存打开时不查询后端，点击刷新才使用会话。
 - 查询输入框和课表下拉框参照顶部搜索框，统一 34px 高、14px 字号、6px 圆角。

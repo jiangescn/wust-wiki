@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WikiMotion from '../WikiMotion.vue'
 import type { Canteen, Dish, FoodComment, FoodStall } from '~/types/food'
 import { createFoodApi, foodMediaUrl, foodPrice } from '~/utils/food-api'
 import FoodImage from '~/components/food/FoodImage.vue'
@@ -170,6 +171,7 @@ onBeforeUnmount(() => { listRequest++; initRequest++; detailRequest++; commentsR
 
 <template>
   <section class="food-directory not-prose" aria-label="食堂菜品与评价">
+    <WikiMotion>
     <div class="food-source"><UBadge color="neutral" variant="subtle">吃在武科</UBadge><span>菜品与评价来自同一份餐饮目录</span></div>
     <div v-if="initialError" class="food-state" role="alert">
       <p>食堂信息暂时无法加载</p><span>{{ initialError }}</span><UButton variant="soft" @click="initialize">重新加载</UButton>
@@ -268,6 +270,7 @@ onBeforeUnmount(() => { listRequest++; initRequest++; detailRequest++; commentsR
       <template #footer><span class="food-detail-hint">想分享用餐体验？可在「吃在武科」小程序中评分、发表评价。</span></template>
     </UModal>
     <UModal v-model:open="previewOpen" title="图片预览" :ui="{ content: 'max-w-4xl' }"><template #close="{ ui }"><UButton :class="ui.close()" color="neutral" variant="ghost" icon="i-lucide-x" aria-label="关闭图片预览" /></template><template #body><img class="food-preview" :src="previewUrl" alt="放大的菜品或评价图片"></template></UModal>
+  </WikiMotion>
   </section>
 </template>
 

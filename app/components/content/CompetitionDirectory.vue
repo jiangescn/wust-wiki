@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import WikiMotion from '../WikiMotion.vue'
+import DirectoryState from '../DirectoryState.vue'
 import competitions from '~/data/competitions-2024.json'
 import officialUrls from '~/data/competition-official-urls.json'
 
@@ -9,6 +11,7 @@ const level = ref('all')
 const organizer = ref('all')
 const audience = ref('all')
 const visible = ref(20)
+const searchInput = useTemplateRef('searchInput')
 const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const levelOptions = [{ label: '全部类别', value: 'all' }, ...levels.map(value => ({ value, label: `${value} 类 · ${competitions.filter(item => item.level === value).length} 项` }))]
 const organizerOptions = [{ label: '全部组织单位', value: 'all' }, ...[...new Set(competitions.flatMap(item => item.organizers))].map(value => ({ label: value, value }))]
@@ -31,12 +34,17 @@ const shown = computed(() => filtered.value.slice(0, visible.value))
 const officialUrl = (id: number) => officialUrls[String(id) as keyof typeof officialUrls] || ''
 watch([keyword, level, organizer, audience], () => { visible.value = 20 })
 function reset() { keyword.value = ''; level.value = 'all'; organizer.value = 'all'; audience.value = 'all' }
+async function resetFromEmpty() {
+  reset()
+  await nextTick()
+  searchInput.value?.inputRef?.focus({ preventScroll: true })
+}
 </script>
 
 <template>
   <section class="competition-directory not-prose" aria-label="2024 年竞赛分类目录">
     <div class="competition-search">
-      <UInput v-model="keyword" icon="i-lucide-search" placeholder="搜索竞赛、组织单位、主办单位" aria-label="搜索竞赛" class="w-full" />
+      <UInput ref="searchInput" v-model="keyword" icon="i-lucide-search" placeholder="搜索竞赛、组织单位、主办单位" aria-label="搜索竞赛" class="w-full" />
       <UButton variant="ghost" color="neutral" @click="reset">重置筛选</UButton>
     </div>
     <div class="competition-filters">
@@ -46,7 +54,8 @@ function reset() { keyword.value = ''; level.value = 'all'; organizer.value = 'a
     </div>
     <p class="competition-count" role="status">找到 {{ filtered.length }} 项 · 按原表顺序排列 · 2024 年版本</p>
     <p v-if="audience !== 'all' && audience !== 'unknown'" class="competition-hint">此筛选包含原表标注“全校学生”的项目，不包含面向对象未注明的项目；当届报名资格仍需查阅赛事通知。</p>
-    <div v-if="!filtered.length" class="competition-empty">没有找到符合条件的竞赛，可以更换关键词或重置筛选。</div>
+    <WikiMotion :change-key="JSON.stringify([keyword.trim(), level, organizer, audience])" :resize="false" :fade-from="0.9">
+    <DirectoryState v-if="!filtered.length" title="没有找到符合条件的竞赛" description="可以更换关键词或清除筛选条件。" action-label="清除筛选条件" @action="resetFromEmpty" />
     <div class="competition-list">
       <details v-for="item in shown" :key="item.id" class="competition-item" :data-contest-id="item.id">
         <summary>
@@ -83,6 +92,7 @@ function reset() { keyword.value = ''; level.value = 'all'; organizer.value = 'a
     </div>
     <div v-if="visible < filtered.length" class="competition-more"><UButton color="neutral" variant="outline" @click="visible += 20">显示更多（{{ shown.length }} / {{ filtered.length }}）</UButton></div>
     <noscript>请启用 JavaScript 使用搜索和筛选。</noscript>
+  </WikiMotion>
   </section>
 </template>
 
@@ -111,7 +121,6 @@ function reset() { keyword.value = ''; level.value = 'all'; organizer.value = 'a
 .competition-detail dd { margin: 0; overflow-wrap: anywhere; }
 .competition-official-link { margin: 0; padding: .75rem; gap: .75rem; }
 .competition-more { display: flex; justify-content: center; margin-top: 1.25rem; }
-.competition-empty { border: 1px dashed var(--ui-border); border-radius: .5rem; padding: 2rem 1rem; text-align: center; color: var(--ui-text-muted); }
 @media (max-width: 640px) {
   .competition-filters { grid-template-columns: minmax(0, 1fr); }
   .competition-item summary { gap: .55rem; }

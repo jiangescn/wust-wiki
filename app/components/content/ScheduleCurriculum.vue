@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WikiMotion from '../WikiMotion.vue'
 const route = useRoute()
 const sample = computed(() => route.query.schedule === 'sample')
 const apiBase = useRuntimeConfig().public.scheduleApiBase
@@ -10,7 +11,7 @@ useHead(() => ({ link: !sample.value && apiBase.startsWith('https://')
 
 <template>
   <ClientOnly>
-  <div>
+  <WikiMotion>
     <template v-if="sample">
       <div class="sample-heading"><UBadge color="neutral" variant="subtle">交互样例</UBadge><NuxtLink to="/study/curriculum">返回扫码查询 →</NuxtLink></div>
       <ScheduleGridPrototype />
@@ -18,7 +19,7 @@ useHead(() => ({ link: !sample.value && apiBase.startsWith('https://')
     <template v-else>
       <AcademicSchedule />
     </template>
-  </div>
+  </WikiMotion>
   <template #fallback><p>正在加载课表…</p></template>
   </ClientOnly>
 </template>

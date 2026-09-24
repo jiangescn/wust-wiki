@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import LabList from '~/data/coder/labs.json'
 import LabItem from '~/xupt/components/unique/LabItem.vue'
+defineProps<{ embedded?: boolean }>()
 </script>
 
 <template>
-  <h1 class="center-line">武科大俱乐部</h1>
+  <h1 v-if="!embedded" class="center-line">武科大俱乐部</h1>
 
-  <div class="center-line vp-doc">
+  <div v-if="!embedded" class="center-line vp-doc">
   </div>
 
   <section class="lab-list">

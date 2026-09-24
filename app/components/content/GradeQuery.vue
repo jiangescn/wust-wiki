@@ -2,6 +2,7 @@
 import type { AcademicView, GradeResult } from '~/types/academic'
 import GradeDisplayPrototype from './GradeDisplayPrototype.vue'
 import GradeGpaCalculator from './GradeGpaCalculator.vue'
+import WikiMotion from '../WikiMotion.vue'
 const props = defineProps<{ calculatorOnly?: boolean }>()
 const route = useRoute()
 const result = useState<GradeResult | null>('academic-grades-page', () => null)
@@ -18,7 +19,7 @@ function clear() { result.value = null; term.value = ''; search.value = ''; expa
   <ClientOnly>
     <GradeGpaCalculator v-if="calculatorOnly" :courses="route.query.grades === 'sample' ? [] : result?.courses || []" />
     <GradeDisplayPrototype v-else-if="route.query.grades === 'sample'" />
-    <div v-else class="grade-query">
+    <WikiMotion v-else class="grade-query">
       <SchoolAcademicQuery resource="grades" :has-result="!!result" @result="accept" @logout="clear" />
       <template v-if="result">
         <div class="grade-filters">
@@ -37,7 +38,7 @@ function clear() { result.value = null; term.value = ''; search.value = ''; expa
         <p v-else>{{ result.courses.length ? '没有匹配的课程。' : '教务系统暂无成绩记录。' }}</p>
         <button v-if="courses.length > 6" class="expand-grades" :aria-expanded="expanded" @click="expanded = !expanded"><span>{{ expanded ? '收起' : `展开其余 ${courses.length - 6} 条` }}</span><svg class="expand-chevron" :class="{ open: expanded }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></button>
       </template>
-    </div>
+    </WikiMotion>
     <template #fallback><p>正在加载成绩查询…</p></template>
   </ClientOnly>
 </template>

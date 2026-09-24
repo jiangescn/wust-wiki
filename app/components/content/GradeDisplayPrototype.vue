@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WikiMotion from '../WikiMotion.vue'
 // One reference design, requested by the user. Synthetic data; no API or storage.
 type DemoCourse = { id: string; name: string; term: string; score: number; credit: number; point: number; nature: string; attempt: string }
 const courses: DemoCourse[] = [
@@ -40,6 +41,7 @@ function showDetail(course: DemoCourse) { detail.value = course; detailOpen.valu
 
 <template>
   <section class="grade-prototype" aria-label="成绩展示样例">
+    <WikiMotion>
     <div class="prototype-caption"><UBadge color="neutral" variant="subtle">演示数据</UBadge><NuxtLink to="/study/grades">返回查询 ↗</NuxtLink></div>
     <div class="grade-overview">
       <div class="overview-title"><h2>成绩概览</h2><UButton color="neutral" variant="ghost" @click="scaleOpen = true">绩点分段表</UButton></div>
@@ -75,6 +77,7 @@ function showDetail(course: DemoCourse) { detail.value = course; detailOpen.valu
     <UModal v-model:open="detailOpen" :title="detail?.name || '课程详情'" description="演示数据" :ui="{ content: 'max-w-md' }">
       <template #body><template v-if="detail"><div class="detail-result"><div><span>成绩</span><strong :class="{ failed: detail.score < 60 }">{{ detail.score }}</strong></div><div><span>学分</span><strong>{{ detail.credit }}</strong></div><div><span>绩点</span><strong>{{ detail.point.toFixed(1) }}</strong></div></div><dl class="grade-detail"><dt>学期</dt><dd>{{ detail.term }}</dd><dt>课程编号</dt><dd>{{ detail.id }}</dd><dt>课程性质</dt><dd>{{ detail.nature }}</dd><dt>考试性质</dt><dd>{{ detail.attempt }}</dd></dl></template></template>
     </UModal>
+  </WikiMotion>
   </section>
 </template>
 

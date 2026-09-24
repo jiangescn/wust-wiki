@@ -15,7 +15,9 @@ onNuxtReady(() => {
 <template>
   <h1 class="center-line">
     武科大校友博客索引
-    <Icon class="shuffle-btn" icon="ri:shuffle-fill" aria-label="随机排序" @click="shuffleBlogs" />
+    <button type="button" class="shuffle-btn" aria-label="随机排序" title="随机排序" @click="shuffleBlogs">
+      <Icon icon="ri:shuffle-fill" aria-hidden="true" />
+    </button>
   </h1>
 
   <div class="center-line vp-doc">
@@ -42,8 +44,19 @@ onNuxtReady(() => {
 }
 
 .shuffle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  margin-left: .25rem;
+  border-radius: .375rem;
+  color: var(--vp-c-text-2);
+  vertical-align: middle;
   cursor: pointer;
 }
+.shuffle-btn:hover { background: var(--vp-c-default-soft); color: var(--vp-c-brand-1); }
+.shuffle-btn:focus-visible { outline: 2px solid var(--vp-c-brand-1); outline-offset: 3px; }
 
 .v-move {
   transition: transform 0.3s;

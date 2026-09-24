@@ -21,6 +21,22 @@ const base = process.env.WIKI_QA_URL || 'http://127.0.0.1:4178';
     assert.equal(await page.locator('.lab-list > .card').count(), 21);
     assert.equal(await page.locator('h1').count(), 1);
     assert.equal(await page.locator('h1').innerText(), '武科大俱乐部');
+    assert.equal(await page.locator('.coder-contribute-aside').count(), 0);
+    const contribute = page.locator('.coder-contribute a[href="https://github.com/jiangescn/wust-wiki/issues"]');
+    assert.equal(await contribute.count(), 1);
+    assert.match(await contribute.textContent(), /补充社团信息/);
+    const contributeHoverColor = await page.evaluate(() => {
+      const flatten = rules => rules.flatMap(rule => rule.cssRules ? [rule, ...flatten([...rule.cssRules])] : [rule]);
+      const rules = flatten([...document.styleSheets].flatMap((sheet) => {
+        try {
+          return [...sheet.cssRules];
+        } catch {
+          return [];
+        }
+      }));
+      return rules.find(rule => rule.selectorText?.includes('.coder-contribute') && rule.selectorText.includes(':hover'))?.style.color;
+    });
+    assert.equal(contributeHoverColor, 'var(--ui-primary)');
     const acm = page.locator('#lab-ACM');
     assert.equal(await acm.locator('.face').evaluate(el => getComputedStyle(el).transitionDuration), '0.3s');
     assert.equal(await acm.locator('.face .avatar-el').getAttribute('src'), 'https://p.qlogo.cn/gh/1057735398/1057735398/0/');
@@ -64,6 +80,9 @@ const base = process.env.WIKI_QA_URL || 'http://127.0.0.1:4178';
     await page.screenshot({ path: '.cache/xupt-labs-desktop.png', animations: 'disabled' });
     await visit('/coder/blog?shuffle=false');
     assert.equal(await page.locator('.blogs > .card').count(), 6);
+    const blogContribute = page.locator('.coder-contribute a[href="https://github.com/jiangescn/wust-wiki/issues"]');
+    assert.equal(await blogContribute.count(), 1);
+    assert.match(await blogContribute.textContent(), /补充博客信息/);
     const blogs = JSON.parse(fs.readFileSync('app/data/coder/blog.json', 'utf8'));
     assert.equal(await page.locator('.blogs > .card').first().getAttribute('id'), `blog-${encodeURIComponent(blogs[0].link)}`);
     const firstBlogId = `blog-${encodeURIComponent(blogs[0].link)}`;
@@ -93,7 +112,7 @@ const base = process.env.WIKI_QA_URL || 'http://127.0.0.1:4178';
     assert.equal(await page.locator('.wiki-entry').count(), 15);
     await page.locator('.wiki-entry[href="/coder/blog"]').click();
     await page.locator('.blogs > .card').first().waitFor();
-    await visit('/overview');
+    await visit('/campus');
     assert.ok(await page.locator('main h1').count());
     await page.setViewportSize({ width: 1440, height: 1000 });
     await visit('/study/contest');

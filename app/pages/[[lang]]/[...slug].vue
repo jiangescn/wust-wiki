@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Docus page shell copied from 5.13.0; only the body renderer is adapted.
+// Docus 5.13.0 page shell with blog body rendering and extracted article aside slots.
 import { blogProseComponents } from '~/utils/blog-prose'
 import type { ButtonProps } from '@nuxt/ui'
 import type { ContentNavigationItem, Collections, DocsCollectionItem } from '@nuxt/content'
@@ -54,6 +54,15 @@ defineOgImage('Docs', {
 
 const github = computed(() => appConfig.github ? appConfig.github : null)
 
+// Reuse the showcase's rehype-meta-slots output; ordinary documents use Blog-prefixed components.
+const articleAsideSlots = computed(() => Object.fromEntries(
+  Object.entries((page.value?.meta?.slots || {}) as Record<string, {
+    type: 'minimark'
+    value: unknown[]
+    props?: { title?: string }
+  }>).filter(([name]) => name.startsWith('aside-')),
+))
+
 const editLink = computed(() => {
   if (!github.value) {
     return
@@ -99,6 +108,7 @@ addPrerenderPath(`/raw${route.path}.md`)
     </UPageHeader>
 
     <UPageBody>
+      <DocsArticleAside :slots="articleAsideSlots" class="lg:hidden" />
       <div class="blog-components wiki-prose">
       <ContentRenderer
         v-if="page"
@@ -146,9 +156,20 @@ addPrerenderPath(`/raw${route.path}.md`)
       v-if="!isOpen"
       #right
     >
-      <DocsAsideRight
-        :page="page"
-      />
+      <div class="wiki-doc-aside">
+        <DocsAsideRight :page="page" class="wiki-doc-toc" />
+        <DocsArticleAside :slots="articleAsideSlots" class="hidden lg:grid" />
+      </div>
     </template>
   </UPage>
 </template>
+
+<style scoped>
+@media (min-width: 1024px) {
+  .wiki-doc-aside { min-width: 0; align-self: start; }
+  .wiki-doc-aside > .wiki-article-aside { margin-top: 1rem; }
+  /* Long directories follow the page, without a second scroll area. */
+  .wiki-doc-aside :deep(.wiki-doc-toc > nav) { position: static; max-height: none; overflow: visible; }
+  .wiki-doc-aside :deep(.wiki-doc-toc [data-slot="content"]) { overflow: visible; }
+}
+</style>

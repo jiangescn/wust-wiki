@@ -1,6 +1,6 @@
 # WUST Wiki
 
-Docus 文档站基础框架。保留西邮 Wiki 的分类、首页 15 个入口与原有路径结构；Coder 首页和校友博客页已开始使用用户提供的武科大资料，其余校园正文待补充。
+Docus 文档站基础框架。沿用西邮 Wiki 的分类与路径结构，按维护需求调整条目；移除“校园墙”文章及相关入口后，首页现有 14 个入口。Coder 首页和校友博客页已开始使用用户提供的武科大资料，其余校园正文待补充。
 
 正式 Wiki 域名为 **https://wiki.wustacm.com**，保持静态部署。课表后端为 **https://schedule.wiki.jianges.com**，只提供学校微信扫码 API，不承载另一个网站；接入与维护见 [课表后端说明](docs/schedule-deployment.md)。
 
@@ -16,15 +16,31 @@ Docus 文档站基础框架。保留西邮 Wiki 的分类、首页 15 个入口�
 
 后续 Agent 开始工作前请阅读 [AGENTS.md](./AGENTS.md)，其中记录复用原则、源码入口、兼容适配、验证方法和未完成事项。
 
+参与内容编写见[贡献指南](content/contributing.md)（站内 `/contributing`）：包含资料反馈、GitHub 网页编辑、校园信息写作、各目录的维护入口及本地预览方法。指南的社区参考与取舍见[研究记录](research/wiki-contribution-guide-2026-09-24.md)。
+
+“写在开头”页 `/overview` 的正文入口为 `content/0.overview.md`，简述资料整理的缘由、内容现状和反馈方式，沿用现有正文排版及两张 LinkCard 入口。正文不复述侧栏目录，不虚构编写者经历；校园 Wiki 的写法参考见 [对照笔记](research/campus-wiki-writing-2026-09-24.md)。
+
+“写在开头”目前临时隐藏：`content.config.ts` 将 `0.overview.md` 排除出文档集合，因此不进入导航、搜索、文章列表和最近更新，原地址暂不生成。正文文件保留；恢复时移除这项排除配置即可。首页“开始阅读”现指向 `/campus`“学校简介”。
+
+“兴趣小组”页 `/study/labs` 通过 `CoderDirectory` 的 `embedded` 模式直接复用“武科大俱乐部”的 `WustLabList`、原版 `LabItem` 和同一份 `app/data/coder/labs.json`。嵌入时隐藏重复的俱乐部标题，保留页面标题、来源说明及卡片翻面，不复制名单。
+
 课表展示样例：`/study/curriculum?schedule=sample`，由 `ScheduleCurriculum.vue` 切换真实查询与 `ScheduleGridPrototype.vue`。正式查询与样例共用 `ScheduleBoard.vue`，自行实现 Vue + CSS Grid 并复用 Nuxt UI 控件与 Wiki 外壳。样例课程明确标注为虚构，不写入课表缓存。支持周次、周表/日列表、课程详情和两校区作息切换；作息来自用户提供图片，仅覆盖第 1–10 节。正式版数据流、七天缓存及验收见 [课表正式版说明](docs/schedule-production.md)。
 
 本科专业页已接入 22 个学院（部）、76 个独立本科专业的原版翻面卡片；招生大类、拔尖班、双学士学位项目等仍在备注表中区分。维护入口及资料核对范围见 [专业卡片说明](./docs/major-mvp-sources.md)。
 
 后续补全专业请遵循 [本科专业列表填写指南](./docs/major-editing-guide.md)。
 
+本科与研究生培养方案按学院整理，公开目录、来源及附件的维护方法见[培养方案页面说明](./docs/curricula-directory.md)。原始采集归档 `docs/curricula/` 仅保留在维护者本地；`build:curricula` 与 `check:curricula` 需要该归档，常规网站构建直接使用已入库的目录与公开附件。
+
+原“学号与学籍”页 `/study/status` 改为“培养方案”，用户已选定平铺版，默认由 `CurriculumDirectory.vue` 按学院分组展示专业卡片，支持培养层次切换、搜索、仅有资料及学院定位。已移除布局切换器与原型命名，旧 `?variant=flat`、`?variant=select` 链接也显示同一平铺页面。直接复用归档文件与元数据，必要适配为静态目录，自行实现平铺布局；卡片圆角 12px、控件圆角 6px，筛选复用 `WikiMotion` 的 160ms 轻淡入（0.85→1），不插值整个目录高度，版本折叠复用全局 220ms 动画及 16px 旋转箭头，并响应减少动态效果偏好。按用户确认保留简化文案，来源元数据仍在归档中保存。PDF 点击查看、DOC 下载。维护和校验见 [培养方案页面说明](./docs/curricula-directory.md)。页面状态为 `published`，公开附件按来源清单发布。
+
 竞赛与证书页 `/study/contest` 已按用户提供的 2024 年文件整理 253 项竞赛，支持搜索、类别、组织单位及面向对象筛选，保留管理办法摘要与原 PDF 页码。来源版本、维护入口及核验方式见 [竞赛目录来源与维护](./docs/competition-catalog-sources.md)。
 
 普通 Markdown 正文与博客示例共享原博客排版、链接、行内代码、代码块和表格渲染；接入入口为 `app/utils/blog-prose.ts` 和 `app/pages/[[lang]]/[...slug].vue`，页面外壳仍沿用 Docus。
+
+普通文档页的侧栏提供“补充与纠正”入口，提示“信息有误或缺漏？欢迎补充。”，链接到本项目 `https://github.com/jiangescn/wust-wiki/issues`。直接复用原博客 `BlogLinkCard`，由 `app/components/docs/DocsArticleAside.vue` 装配；桌面显示在右侧目录下方，侧栏随整页滚动，不设置独立滚动区域，手机显示在正文前。文章已有 `meta-aside-contribute` 时使用其专用入口（例如“补充培养方案”），不重复显示通用卡片。
+
+页面动效：`app/app.vue` 直接使用 Nuxt 页面过渡，全站跳转淡入；自行实现的 `app/components/WikiMotion.vue` 为成绩、绩点、课表、竞赛和美食查询提供 220ms 高度衔接，课表视图切换使用 160ms 淡入。不会为动画重新挂载查询组件，也不延迟请求。原博客、Coder 卡片及 Nuxt UI 弹窗继续复用原动画。原生折叠区在支持 `::details-content` 的浏览器中渐进增强；系统减少动态效果时取消动画。本次变化见站内更新日志。
 
 ## 本地开发
 
@@ -83,6 +99,8 @@ pnpm generate
 
 ## 内容状态
 
+首页“最近更新”直接复用文档集合，显示带实际 `updated` 日期的 5 篇已发布页面，按日期降序、同日按路径升序排列；更新日志不占条目，通过区块右侧“完整更新日志”进入。`content/navigation.md` 为独立 Vue 导航页提供搜索、文章列表及最近更新元数据，页面仍由 `app/pages/navigation.vue` 渲染，且不重复出现在文档侧栏。
+
 - `status: draft`：待补充条目，页面仍能打开，并可被搜索，全部文章中标记为“待补充”。
 - `status: published`：已发布；只有同时填写 `updated: 'YYYY-MM-DD'` 才会进入首页最近更新。
 - `updated` 表示内容更新日期，不代表校园信息已经核实。适用校区、时间、来源写在正文。
@@ -98,7 +116,7 @@ pnpm generate
 
 - 正式构建设置 `NUXT_SITE_URL=https://wiki.wustacm.com`。课表 API 默认指向 `https://schedule.wiki.jianges.com`，可用 `NUXT_PUBLIC_SCHEDULE_API_BASE` 覆盖；静态页面配置变更后需重新生成。
 - 项目 GitHub 地址：`app/app.config.ts` 中将 `github: false` 改为实际仓库信息，再启用源文件编辑入口。当前不使用虚构仓库链接。
-- 首页保留了参考站的 `CO 导航` 外链，它属于西邮项目；如需 WUST 专属导航，修改首页按钮地址。
+- 首页“武科大导航”指向 `/navigation`：参考 CO 导航的双列分组与紧凑链接结构，使用现有 Wiki 的外壳、字体、主题色和卡片风格。共 78 个入口，均配有本地打包的 Lucide 图标，支持名称、用途与网址搜索。“发现更多”现有 8 组、52 项，覆盖 Wiki 查询、在线学习、考试升学、编程开发、AI 助手、在线工具、设计写作和软件下载；在线学习共 6 项，包含“你缺失的那门计算机课”。页面入口为 `app/pages/navigation.vue`，数据在 `app/data/navigation.ts` 与 `navigation-extra.ts`；[来源与访问边界](docs/navigation-sources.md)、[发现更多扩充来源](docs/navigation-discovery-sources.md)、[原版来源与适配](vendor/xupt-nav/README.md)。导航链接不代表外部系统登录已经验证。
 - 所有 WUST 校园信息、联系人和外部办事入口须由维护者填写。
 - 沁湖宿舍查询嵌入：部署沁湖站点时在其 `.env` 设置 `EMBED_ALLOWED_ORIGINS=https://wiki.wustacm.com`；Wiki 默认使用 `https://dorm.wustacm.com/embed`，如需测试或迁移可通过 `NUXT_PUBLIC_DORMITORY_EMBED_URL` 覆盖。Wiki 组件仅经 iframe 桥接传递区域、寝室号和最终允许公开的结果，不直接调用 `/api/query`，也不接触 GeeTest 验证字段。
 
@@ -106,7 +124,7 @@ pnpm generate
 
 `/coder/` 和 `/coder/blog` 继续复用西邮原版 LabItem、BlogCard 及 BlurCard 等依赖，运行源码在 `app/xupt/`。`CoderDirectory.vue` 负责按页面选择装配：`/coder/` 由 `WustLabList.vue` 读取 `app/data/coder/labs.json`，`/coder/blog` 由 `WustBlogList.vue` 读取 `app/data/coder/blog.json`；两者均为用户提供的武科大首批条目。也可通过 Markdown 中的 `::coder-directory{kind="labs"}` / `::coder-directory{kind="blogs"}` 调用。来源、适配和校验方法见 [迁移说明](./vendor/xupt-wiki/README.md)。
 
-武科大条目沿用原版悬停 3D 翻面、QQ 群头像和群号复制；按录入顺序展示，不随机排序。武科大博客沿用头像/访问箭头/标签/链接淡入淡出与原版 TransitionGroup 排序动画，`?shuffle=false` 可固定初始顺序；`avatar` 使用各博客主页实际声明的站点图标。Chord 主页没有声明 favicon，当前回退到主页实际引用的默认文章图。目录数据是本地静态快照，不代表已接入在线同步。`pnpm check:xupt` 校验迁移源码与原样动画样式。
+武科大条目沿用原版悬停 3D 翻面、QQ 群头像和群号复制；按录入顺序展示，不随机排序。武科大博客沿用头像/访问箭头/标签/链接淡入淡出与原版 TransitionGroup 排序动画，`?shuffle=false` 可固定初始顺序；`avatar` 优先使用博主指定头像，否则使用主页声明的站点图标。Chord 按 [Issue #1](https://github.com/jiangescn/wust-wiki/issues/1) 中博主提供的链接使用 `https://blog.songline-blog.com/uploads/songline/qiandai.jpg`。目录数据是本地静态快照，不代表已接入在线同步。`pnpm check:xupt` 校验迁移源码与原样动画样式。
 
 可维护字段：武科大条目 `id/name/tags/belong/addr/qq/github/website/plan`；博客 `author/title/avatar/grade/belong/tags/link/feed/github/qq`。`tags` 为逗号分隔字符串；无值字段保持空字符串；新增条目 id、群号及博客 link 必须唯一。群图片由 `qq` 自动生成 QQ 群头像；博客 `avatar` 应从对应主页的 icon 声明或实际图片取得，官网和博客地址必须填写完整 URL。
 

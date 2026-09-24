@@ -706,7 +706,7 @@ desc: 原版 FeedGroup 与 FeedCard
 shuffle: true
 entries:
   - author: WUST Wiki
-    link: /overview
+    link: /campus
     icon: /favicon.svg
     avatar: /favicon.svg
     date: '2026-09-13'

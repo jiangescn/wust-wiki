@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WikiMotion from '../WikiMotion.vue'
 import { campusTimes, weekdays, normalizeCourses, layoutDay, currentTeachingWeek, type Campus, type Course, type ScheduleResult } from '~/utils/schedule'
 const props = withDefaults(defineProps<{ result: ScheduleResult; demo?: boolean }>(), { demo: false })
 const campus = ref<Campus>('huangjiahu')
@@ -52,6 +53,7 @@ onMounted(() => {
       <span class="course-count">{{ visible.length }} 条排课</span>
       <div class="view-switch" role="group" aria-label="课表视图"><button :aria-pressed="mode === 'week'" @click="mode = 'week'">周课表</button><button :aria-pressed="mode === 'day'" @click="mode = 'day'">按日列表</button></div>
     </div>
+    <WikiMotion :resize="false" :change-key="[mode, week, day, campus].join('-')">
     <template v-if="mode === 'week'">
       <p class="mobile-hint">左右滑动查看整周</p>
       <div class="grid-scroll" tabindex="0" role="region" aria-label="一周课表，可横向滚动">
@@ -74,6 +76,7 @@ onMounted(() => {
         <div v-if="!dayCourses.length" class="empty-day">这一天没有安排课程<span>{{ week ? `第 ${week} 周` : "全部课程" }} · {{ weekdays[day - 1] }}</span></div>
       </div>
     </template>
+    </WikiMotion>
     <div v-if="unplaced.length" class="schedule-notes"><h4>时间或周次待确认（{{ unplaced.length }} 条）</h4><button v-for="course in unplaced" :key="course.id" class="unplaced-course" @click="openDetail(course)">{{ course.name }} · {{ course.weeks || '未提供周次' }} · {{ course.sections || '未提供节次' }} ↗</button></div>
     <details v-if="result.notes?.length" class="schedule-notes"><summary>教务备注 <span>{{ result.notes.length }}</span></summary><ul><li v-for="(note, index) in result.notes" :key="index">{{ note }}</li></ul></details>
     <UModal v-model:open="detailOpen" :title="detail?.name || '课程详情'" :description="demo ? '虚构课程' : '课程详情'">

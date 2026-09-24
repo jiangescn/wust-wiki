@@ -1,6 +1,23 @@
 @theme { --font-sans: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
 :root { --ui-container: 90rem; }
 body { -webkit-font-smoothing: antialiased; }
+.wiki-page-enter-active { transition: opacity 180ms ease-out, transform 180ms ease-out; }
+.wiki-page-leave-active { transition: opacity 100ms ease-in; }
+.wiki-page-enter-from { opacity: 0; transform: translateY(6px); }
+.wiki-page-leave-to { opacity: 0; }
+@keyframes wiki-content-enter { from { opacity: 0; } to { opacity: 1; } }
+:where(.grade-query .grade-filters, .academic-query .scan-panel, .gpa-summary, .gpa-courses) { animation: wiki-content-enter 180ms ease-out; }
+:where(.grade-query, .grade-prototype, .gpa-calculator) .expand-chevron { transition: transform 200ms ease; }
+/* Keep native disclosure semantics, with animation in supporting browsers. */
+@supports (interpolate-size: allow-keywords) {
+  :where(.wiki-folding, .competition-item, .schedule-notes, .curriculum-more)::details-content {
+    interpolate-size: allow-keywords;
+    height: 0;
+    overflow: clip;
+    transition: height 220ms ease, content-visibility 220ms allow-discrete;
+  }
+  :where(.wiki-folding, .competition-item, .schedule-notes, .curriculum-more)[open]::details-content { height: auto; }
+}
 .dark { --ui-bg: #1b1b1f; --ui-bg-muted: #232329; --ui-border: #313137; }
 .wiki-brand { display:inline-flex;align-items:center;gap:.65rem;font-size:1.15rem;font-weight:650;white-space:nowrap; }
 .wiki-brand-light { font-weight:550; }
@@ -11,8 +28,12 @@ body { -webkit-font-smoothing: antialiased; }
 .wiki-hero-actions { display:flex;gap:.8rem; }
 .wiki-hero-logo { margin-right:5rem; }
 .wiki-entry-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:1rem; }
-.wiki-entry { position:relative;isolation:isolate;overflow:hidden;padding:1.5rem;border:1px solid transparent;border-radius:12px;background:var(--ui-bg-muted);min-height:110px;transition:border-color .15s; }
-.wiki-entry:hover { border-color:var(--ui-primary); }
+.wiki-entry { position:relative;isolation:isolate;overflow:hidden;padding:1.5rem;border:1px solid transparent;border-radius:12px;background:var(--ui-bg-muted);min-height:110px;transition:border-color .15s,box-shadow .15s,transform .15s; }
+.wiki-entry:focus-visible { border-color:var(--ui-primary);outline:2px solid var(--ui-primary);outline-offset:3px;box-shadow:0 4px 12px color-mix(in srgb,var(--ui-primary) 10%,transparent); }
+@media(hover:hover) and (pointer:fine) {
+  .wiki-entry:hover { border-color:var(--ui-primary);box-shadow:0 4px 12px color-mix(in srgb,var(--ui-primary) 10%,transparent);transform:translateY(-2px); }
+}
+.wiki-entry:active { border-color:var(--ui-primary);transform:none; }
 .wiki-entry h2 { position:relative;font-size:1.05rem;font-weight:650;line-height:1.5;z-index:1; }
 .wiki-entry p { position:relative;font-size:.875rem;color:var(--ui-text-muted);line-height:1.6;margin-top:.6rem;z-index:1; }
 .wiki-entry-emoji { position:absolute;z-index:-1;right:-4px;top:50%;transform:translateY(-50%);font-size:7rem;line-height:1;opacity:.14;user-select:none; }
@@ -32,7 +53,15 @@ body { -webkit-font-smoothing: antialiased; }
 .wiki-footer-links a:hover { color:var(--ui-primary); }
 @media(max-width:900px) { .wiki-hero-logo { margin-right:1rem;width:120px;height:120px; } .wiki-hero p { font-size:1.4rem; } .wiki-entry-grid { grid-template-columns:repeat(2,1fr); } }
 @media(max-width:640px) { .wiki-home { padding:0 1.25rem 3rem; } .wiki-hero { padding:2.5rem 0 2rem; } .wiki-hero h1 { font-size:2.5rem; } .wiki-hero p { font-size:1.12rem; } .wiki-hero-logo { display:none; } .wiki-entry-grid { grid-template-columns:1fr;gap:.75rem; } .wiki-entry { min-height:100px;padding:1.25rem; } .wiki-updates { padding:0;margin-top:2rem; } }
-@media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important;scroll-behavior:auto!important; } }
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after { transition:none!important; animation:none!important; scroll-behavior:auto!important; }
+  .wiki-page-enter-from, .wiki-page-leave-to { opacity:1;transform:none; }
+  .wiki-entry:hover { transform:none; }
+  /* Match the specificity of the upstream important transition rules. */
+  .blog-components :is(.float-in-enter-active, .float-in-leave-active, .float-in-move) { transition:none!important; }
+  .blog-components :is(.float-in-enter-from, .float-in-leave-to) { opacity:1;transform:none; }
+  :where(.wiki-folding, .competition-item, .schedule-notes, .curriculum-more)::details-content { transition:none!important; }
+}
 
 .wiki-link-card { display: flex; align-items: center; gap: 1rem; padding: 1.1rem; margin: 1rem 0; border: 1px solid var(--ui-border); border-radius: .75rem; text-decoration: none !important; background: var(--ui-bg); transition: border-color .18s; }
 .wiki-link-card:hover { border-color: var(--ui-primary); }

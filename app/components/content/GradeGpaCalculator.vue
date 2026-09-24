@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { GradeCourse } from '~/types/academic'
+import WikiMotion from '../WikiMotion.vue'
 import { calculateGpa, groupGradeAttempts, gradeNumber } from '~/utils/gpa'
 const props = defineProps<{ courses: GradeCourse[] }>()
 const groups = computed(() => groupGradeAttempts(props.courses))
@@ -37,6 +38,7 @@ function calculate() { calculated.value = true; if (unresolved.value) detailsOpe
 
 <template>
   <section class="gpa-calculator" aria-label="绩点计算器">
+    <WikiMotion>
     <div class="gpa-toolbar"><UButton :disabled="!courses.length" @click="calculate">计算绩点</UButton><button v-if="courses.length" class="gpa-settings" :aria-expanded="detailsOpen" @click="detailsOpen = !detailsOpen"><span>选择课程与成绩</span><svg class="expand-chevron" :class="{ open: detailsOpen }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></button><span>重修按最新成绩计算</span></div>
     <p v-if="!courses.length" class="gpa-note">请先在上方查询成绩。</p>
     <div v-if="calculated && !unresolved" class="gpa-summary" aria-live="polite"><div><span>平均绩点</span><b>{{ summary.gpa === null ? '—' : summary.gpa.toFixed(2) }}</b></div><div><span>计入学分</span><b>{{ Number(summary.credits.toFixed(2)) }}</b></div><div><span>计入课程</span><b>{{ summary.count }}</b></div></div>
@@ -53,6 +55,7 @@ function calculate() { calculated.value = true; if (unresolved.value) detailsOpe
       </section>
     </div>
     <p class="gpa-note">绩点计算仅供参考，请以学校通知为准。</p>
+    </WikiMotion>
   </section>
 </template>
 

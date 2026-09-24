@@ -1,0 +1,58 @@
+{
+  "repository": "https://github.com/xupt-wiki/xupt-nav",
+  "commit": "22c863940ce888ae744929b8aaa205ff6c280f19",
+  "snapshotDate": "2026-09-24",
+  "license": "GPL-3.0",
+  "copyrightNotice": "2026 纸鹿 (upstream index.html)",
+  "files": [
+    {
+      "source": "asset/index.css",
+      "snapshot": "vendor/xupt-nav/asset/index.css",
+      "sourceUrl": "https://raw.githubusercontent.com/xupt-wiki/xupt-nav/22c863940ce888ae744929b8aaa205ff6c280f19/asset/index.css",
+      "bytes": 2921,
+      "sha256": "e458a10cfab0f1db6f9a6a0f1547b8bb409df1f3f9978000cc278f85f82fb176"
+    },
+    {
+      "source": "asset/nav.js",
+      "snapshot": "vendor/xupt-nav/asset/nav.js",
+      "sourceUrl": "https://raw.githubusercontent.com/xupt-wiki/xupt-nav/22c863940ce888ae744929b8aaa205ff6c280f19/asset/nav.js",
+      "bytes": 13410,
+      "sha256": "9166c0373908a11a6ff7893674fe156fce23bb12452735a94ea180896f379ee8"
+    },
+    {
+      "source": "index.html",
+      "snapshot": "vendor/xupt-nav/index.html",
+      "sourceUrl": "https://raw.githubusercontent.com/xupt-wiki/xupt-nav/22c863940ce888ae744929b8aaa205ff6c280f19/index.html",
+      "bytes": 4197,
+      "sha256": "8d601507ec79c059f5d924bca1f055e3eb4e4ec3ff72f107a3b1f5823915d3c3"
+    },
+    {
+      "source": "LICENSE",
+      "snapshot": "vendor/xupt-nav/LICENSE",
+      "sourceUrl": "https://raw.githubusercontent.com/xupt-wiki/xupt-nav/22c863940ce888ae744929b8aaa205ff6c280f19/LICENSE",
+      "bytes": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    {
+      "source": "README.md",
+      "snapshot": "vendor/xupt-nav/upstream-README.md",
+      "sourceUrl": "https://raw.githubusercontent.com/xupt-wiki/xupt-nav/22c863940ce888ae744929b8aaa205ff6c280f19/README.md",
+      "bytes": 596,
+      "sha256": "aa3e40546153fdd68d044eb64ab4e29c439bb84d8649be2f65b9385a096bc449"
+    }
+  ],
+  "runtime": [
+    {
+      "source": "asset/index.css",
+      "runtime": "app/assets/co-navigation.css",
+      "sha256": "668278a5fb5720f9a84baa72fbce52ee96be20aec951759b93943ecf91d350be",
+      "adaptations": [
+        "Nuxt page-scoped stylesheet",
+        "Existing Wiki theme variables and inherited font",
+        "Wiki homepage width, spacing, 12px cards and border hover",
+        "At most two columns with original 20em column width"
+      ],
+      "modifiedDate": "2026-09-24"
+    }
+  ]
+}

@@ -29,7 +29,7 @@ provide('navigation', navigation)
   <UApp :locale="locale">
     <NuxtLoadingIndicator color="var(--ui-primary)" />
     <AppHeader />
-    <NuxtLayout><NuxtPage /></NuxtLayout>
+    <NuxtLayout><NuxtPage :transition="{ name: 'wiki-page', mode: 'out-in' }" /></NuxtLayout>
     <AppFooter />
     <BikariyaModals />
     <ClientOnly><AppSearch :navigation="navigation || undefined" /></ClientOnly>

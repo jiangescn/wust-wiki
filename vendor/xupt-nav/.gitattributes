@@ -1,0 +1,6 @@
+# Preserve the exact upstream snapshot bytes, including original line endings.
+/asset/index.css -text
+/asset/nav.js -text
+/index.html -text
+/LICENSE -text
+/upstream-README.md -text

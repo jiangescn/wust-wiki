@@ -47,3 +47,18 @@
   vertical-align: 0.1em !important;
   transform: none;
 }
+.coder-contribute {
+  max-width: 1200px;
+  margin: 2rem auto 0;
+  padding: 1.25rem 1rem 0;
+  border-top: 1px solid rgb(128 128 128 / 18%);
+  color: var(--text-color-secondary, #6b7280);
+  font-size: 0.875rem;
+  text-align: center;
+}
+.coder-contribute a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.coder-contribute a:hover { color: var(--ui-primary); }

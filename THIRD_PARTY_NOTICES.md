@@ -53,6 +53,20 @@ Coder 目录使用同一参考版本的 `docs/.vitepress/data/labs.json`（20 �
 Coder 已由自行实现替换为原版迁移：`vendor/xupt-wiki/` 保存上游 12 个组件和工具、页面、数据、样式快照，`app/xupt/` 为运行副本。保留原组件全部动画 style 块，仅调整导入、Nuxt 生命周期与相对链接，详见该目录 README 和迁移清单。VitePress `2.0.0-alpha.19` 的 VPBadge 与主题变量一并复用，MIT 许可见 `vendor/xupt-wiki/vitepress/LICENSE`。参考目录数据沿用上游内容的 CC BY-NC-SA 4.0 署名与共享说明；头像由上游使用的 GitHub 代理和 QQ 服务加载，权利归各自权利人。静态图标来自 Iconify 的 Remix Icon 和 Phosphor 集合，保留安装包所附许可。
 对参考首页的文字保留 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 署名及相同方式共享说明；上游代码许可证另见 `licenses/xupt-wiki-MIT.txt`。
 
+## CO 导航：xupt-nav
+
+来源：https://github.com/xupt-wiki/xupt-nav
+
+参考版本：`22c863940ce888ae744929b8aaa205ff6c280f19`，上游页面署名 `2026 纸鹿`。
+
+武科大导航复用 CO 导航的自动多栏布局、圆角分类卡片、紧凑图标链接与小字说明结构；在 Vue 渲染、Wiki 样式作用域及主题边界进行必要适配，导航数据改为武科大入口。原 `asset/index.css`、`asset/nav.js`、`index.html`、`README.md` 及 `LICENSE` 的精确快照、SHA-256 和迁移说明保存在 `vendor/xupt-nav/`；上游 README 重命名为 `upstream-README.md`。
+
+上游按 **GPL-3.0** 授权，完整许可文本见 [`vendor/xupt-nav/LICENSE`](./vendor/xupt-nav/LICENSE)。相关原代码及改编保留 GPL-3.0 的来源与许可声明，不归入本文件其他章节的 MIT 许可。上游的统计、群聊/联系入口、弹窗数据和西邮专属链接只保留于来源快照，不作为武科大页面运行内容；链接目标及第三方素材仍由各自权利人管理。
+
+## 导航图标：Lucide
+
+导航页图标使用已安装的 Iconify Lucide 集合（Lucide Contributors，ISC），来源 [Iconify Lucide](https://icon-sets.iconify.design/lucide/)。按导航数据中的图标名本地打包，完整声明保留在 `@iconify-json/lucide` 包内；不把图标许可与 CO 导航的 GPL-3.0 混同。
+
 ## 文档框架：Docus
 
 来源：https://github.com/nuxt-content/docus ，使用版本 5.13.0。
