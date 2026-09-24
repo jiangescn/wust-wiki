@@ -88,7 +88,7 @@ onMounted(() => {
 .board-heading h3 { font-size: 1.3rem; margin: .35rem 0 !important; font-weight: 700; }
 .board-heading p { color: var(--ui-text-muted); font-size: .8rem; margin: 0; }
 .campus-select { font-size: .7rem; color: var(--ui-text-muted); display: flex; flex-direction: column; gap: .3rem; }
-select { border: 1px solid var(--ui-border); background: var(--ui-bg); color: var(--ui-text); border-radius: 7px; padding: .45rem .6rem; font: inherit; font-size: .85rem; }
+select { box-sizing: border-box; height: 2.125rem; border: 1px solid var(--ui-border); background: var(--ui-bg); color: var(--ui-text); border-radius: 6px; padding: 0 .625rem; font-family: inherit; font-size: .875rem; line-height: 1.25rem; }
 .toolbar { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; padding: 0 1.25rem 1rem; }
 .week-switch { display: flex; align-items: center; gap: .2rem; }
 .week-switch select { font-weight: 650; border: none; }

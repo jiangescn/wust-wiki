@@ -1,11 +1,13 @@
 # 学校课表正式版
 
+2026-09-24 发布版本：课表与成绩共享最多24小时教务会话，`ScheduleCurriculum.vue` 的真实查询由 `AcademicSchedule.vue` + `SchoolAcademicQuery.vue` 装配。七天课表缓存与渲染器保持原行为。接口与会话规则见 [教务查询说明](./academic-query.md)。
+
 访问路径：`https://wiki.wustacm.com/study/curriculum`。继续使用静态 Wiki，调用独立课表 API；无需部署第二个前端网站。后端维护见 [部署说明](./schedule-deployment.md)。
 
 ## 实现边界
 
 - `ScheduleCurriculum.vue`：客户端装配，避免静态生成时查询参数导致 hydration 不一致。`?schedule=sample` 为保留的虚构示例地址，使用同一正式渲染器；正式页面不再显示样例入口。
-- `ScheduleQuery.vue`：学校微信扫码、串行轮询、取消、到期提示及错误恢复。无有效缓存时自动生成二维码，二维码过期后在页面可见时自动刷新；手动取消或网络错误后停止自动刷新。缓存有效时打开页面和切周不访问学校或后端。更新失败保留有效的旧课表。
+- `AcademicSchedule.vue` + `SchoolAcademicQuery.vue`：共享学校微信扫码、串行轮询、取消、到期提示及错误恢复。无有效缓存或登录态时自动生成二维码，二维码过期后在页面可见时自动刷新；手动取消或网络错误后停止自动刷新。缓存有效时打开页面和切周不访问学校或后端。更新失败保留有效的旧课表。`ScheduleQuery.vue` 保留用于旧接口回归。
 - `ScheduleBoard.vue`：Vue + CSS Grid 周表、手机默认日列表、详情弹窗、备注、校区时间选择。按全学期去重课名排序分配独立色相，同一课程颜色一致，切周或接口排课顺序变化不会改色；不再使用六色色板取余，避免不同课程撞色；不连续节次分开显示；重叠课程并列并增加列宽，避免覆盖与不可读的小卡片。
 - `app/utils/schedule.ts`：周次和节次解析、重叠分组、存储字段投影和七天有效期校验。未知周次不能当作无课，单独列出原文；未知节次/星期同样保留为待确认条目。
 - `useSchoolScheduleCache.ts`：本机缓存及跨标签页同步清除，页面打开、重新可见及运行中检查有效期。清除时取消正在进行的请求，迟到响应不能恢复旧数据。
@@ -15,7 +17,7 @@
 
 ## 七天缓存
 
-键为 `wust-wiki:schedule:v1`，只包含版本、同步时间、固定到期时间，以及经过白名单投影的课程和备注。期限为成功获取起 `7 × 24 小时`，读取缓存不会续期。学校 Cookie、认证票据、密码字段、二维码、API 会话标识均不持久化。
+键为 `wust-wiki:schedule:v1`，只包含版本、同步时间、固定到期时间，以及经过白名单投影的课程和备注。期限为成功获取起 `7 × 24 小时`，读取缓存不会续期。该缓存不包含学校 Cookie、认证票据、密码或二维码。新接口的随机 API 令牌单独保留最多一天，详见教务查询说明。
 
 缓存按浏览器来源隔离，不跨设备。到期不再显示并删除；关闭页面期间无法准点运行删除，下一次运行时清理。浏览器存储被禁止或写入失败时明确提示，并只在内存显示结果。更新失败或取消保留仍有效的旧课表；“清除本机课表”删除缓存并通知同源标签页。公用设备使用完需主动清除。
 
@@ -23,7 +25,7 @@
 
 `pnpm check:schedule` 覆盖后台认证隔离与解析，以及前端单双周/间断周、非连续节次、重叠布局、未知规则、校区时间和七天边界、字段投影。`pnpm typecheck`、`pnpm check:content`、`pnpm check:xupt`、`pnpm generate` 为发布检查。先停止开发服务再执行类型检查和生成，避免 Nuxt Content 开发索引被并行任务改写。
 
-浏览器验收使用 `scripts/schedule-ui-fixture.mjs` 的虚构数据。它只监听 loopback，绝不进入后端发布包：
+以下为旧接口浏览器回归记录，使用 `scripts/schedule-ui-fixture.mjs` 的虚构数据。它只监听 loopback，绝不进入后端发布包；新版共享接口的验证记录见教务查询说明：
 
 1. 在独立终端运行 `node scripts/schedule-ui-fixture.mjs`。
 2. 设置 `NUXT_PUBLIC_SCHEDULE_API_BASE=http://127.0.0.1:4259` 后生成测试产物，使用 `PORT=4178 pnpm preview:static`。

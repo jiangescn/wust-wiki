@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isIP } from 'node:net'
 import { createLoginStore } from './utils/login-template-store.mjs'
+import { createAcademicStore } from './utils/academic-store.mjs'
 
 const apiPath = '/api/login-template'
 
@@ -22,7 +23,7 @@ function readBody(request) {
 
 // A single process behind the existing HTTPS reverse proxy. Upstream auth logic
 // is shared with the local template; no credentials or course data go to disk.
-export function createScheduleServer({ origin, allowedOrigins = [], store = createLoginStore(), now = Date.now }) {
+export function createScheduleServer({ origin, allowedOrigins = [], store = createLoginStore(), academicStore = createAcademicStore(), now = Date.now }) {
   const site = new URL(origin)
   if (site.protocol !== 'https:' || site.origin !== origin || site.username || site.password) throw new Error('SCHEDULE_ORIGIN must be an exact HTTPS origin')
   const origins = new Set([origin, ...allowedOrigins])
@@ -61,7 +62,7 @@ export function createScheduleServer({ origin, allowedOrigins = [], store = crea
       const path = new URL(request.url, origin).pathname
       if (path === '/healthz' && request.method === 'GET') return json(200, { status: 'ok' })
       if (request.headers.host !== site.host) return json(403, { error: 'Host not allowed' })
-      if (path === apiPath) {
+      if (path === apiPath || path === '/api/academic') {
         if (!origins.has(request.headers.origin)) return json(403, { error: 'Origin not allowed' })
         response.setHeader('Access-Control-Allow-Origin', request.headers.origin)
         response.setHeader('Vary', 'Origin')
@@ -76,6 +77,11 @@ export function createScheduleServer({ origin, allowedOrigins = [], store = crea
         if (Number(request.headers['content-length'] || 0) > 2048) return json(413, { error: 'Body too large' })
         let body
         try { body = JSON.parse(await readBody(request)) } catch { return json(400, { error: 'Invalid body' }) }
+        if (path === '/api/academic') {
+          if (body?.action === 'start' && !allow(request, true)) { response.setHeader('Retry-After', '60'); return json(429, { message: '请求较多，请一分钟后重试。' }) }
+          const result = await academicStore.handle({ body, authorization: request.headers.authorization, origin: request.headers.origin })
+          return json(result.status, result.data)
+        }
         if (!body || !['inspect', 'start', 'poll', 'clear'].includes(body.action)) return json(400, { error: 'Invalid action' })
         if (body.action === 'start' && body.provider !== 'wust') return json(400, { error: 'Only school login is enabled' })
         if (body.action === 'start' && !allow(request, true)) { response.setHeader('Retry-After', '60'); return json(429, { error: 'Too many login attempts' }) }
@@ -103,7 +109,7 @@ export function createScheduleServer({ origin, allowedOrigins = [], store = crea
   })
   server.requestTimeout = 15_000
   server.headersTimeout = 10_000
-  server.on('close', () => { clearInterval(cleanup); browserSessions.clear(); clients.clear(); store.dispose() })
+  server.on('close', () => { clearInterval(cleanup); browserSessions.clear(); clients.clear(); store.dispose(); academicStore.dispose() })
   return server
 }
 

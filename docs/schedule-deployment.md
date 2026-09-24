@@ -1,17 +1,21 @@
 # 学校课表后端
 
+20260924-1 新增 `/api/academic`，复用扫码后最多保留24小时的学校会话，同时查询课表和成绩。沿用现有域名和服务器；旧 `/api/login-template` 兼容保留。新接口及会话规则详见 [教务查询说明](./academic-query.md)。
+
 Wiki 正式域名：**https://wiki.wustacm.com**，保持现有 Nuxt/Docus 静态部署与页面外壳。
-课表 API：**https://schedule.wiki.jianges.com/api/login-template**，不承载网站或独立登录页面。
+教务 API：**https://schedule.wiki.jianges.com/api/academic**，不承载网站或独立登录页面。
 
 ## Wiki 调用
 
 `nuxt.config.ts` 的 `public.scheduleApiBase` 默认指向上述后端；可通过 `NUXT_PUBLIC_SCHEDULE_API_BASE` 覆盖。静态构建时确定该值，修改后必须重新生成并发布 Wiki。`pnpm dev:login` / `pnpm dev:login:lan` 仍使用本地实验接口。
 
-`content/2.study/2.curriculum.md` 通过 `::schedule-curriculum` 嵌入查询入口，默认仍由 `app/components/content/ScheduleQuery.vue` 展示学校微信扫码、当前学期课表与教务备注；`?schedule=sample` 显示独立虚构课表样例，不请求登录 API。查询组件复用原登录模板的轮询、取消与临时会话逻辑，在页面内存中保存短期会话标识；离开页面或手动取消时释放临时登录会话；已成功同步的课程字段另由浏览器保留七天，“清除本机课表”立即删除该缓存。`app/pages/previews/schedule-login.vue` 通过 `ScheduleLoginTemplates.vue` 保留三种方式的本地测试。前端发布沿用 GitHub main → Vercel；正式访问地址为 `https://wiki.wustacm.com/study/curriculum`。
+`content/2.study/2.curriculum.md` 通过 `::schedule-curriculum` 嵌入查询入口，由 `AcademicSchedule.vue` 和 `SchoolAcademicQuery.vue` 展示学校微信扫码与课表；`?schedule=sample` 保留虚构样例，不请求登录 API。成绩页复用同一认证组件，登录会话最多保留一天；课表信息另由浏览器保留七天，“清除本机课表”立即删除该缓存。`app/pages/previews/schedule-login.vue` 保留三种方式的本地测试。前端发布沿用 GitHub main → Vercel。
 
 后端精确允许 `Origin: https://wiki.wustacm.com`，支持 POST 的 CORS 预检及 `Content-Type, Authorization`。不使用第三方 Cookie：Wiki 与后端属于不同主域名，单纯放开 CORS 无法保证第三方 Cookie 可用。
 
-调用同一个 POST 地址，JSON 请求如下：
+## 旧接口兼容
+
+以下仅描述旧 `/api/login-template`；正式页面使用新 `/api/academic`，详见上方链接。旧接口 JSON 请求如下：
 
 | 动作 | 请求体 | 用途 |
 | --- | --- | --- |
@@ -27,8 +31,8 @@ Wiki 正式域名：**https://wiki.wustacm.com**，保持现有 Nuxt/Docus 静�
 ## 部署与维护
 
 - 服务器：用户指定的 `139.224.226.170`，SSH `2222`。
-- 当前版本：`20260923-2`，容器 `wust-schedule`，镜像 `wust-schedule:20260923-2`。
-- `/opt/wust-schedule/current` 指向 `releases/20260923-2`。更新时保留 Docker Compose 项目名 `20260923-1`，避免与现有同名容器冲突；该项目名是首次部署时生成的标识。
+- 发布版本：`20260924-1`，容器 `wust-schedule`，镜像 `wust-schedule:20260924-1`。
+- `/opt/wust-schedule/current` 指向对应 `releases/` 版本。更新时保留 Docker Compose 项目名 `20260923-1`，避免与现有同名容器冲突；该项目名是首次部署时生成的标识。保留 `20260923-2` 镜像和目录供回滚。
 - Node HTTP 入口为 `server/schedule-service.mjs`，直接复用学校扫码适配器、Cookie jar、课表解析器与会话存储。
 - 非 root、只读容器，内存上限 256 MB，仅映射 `127.0.0.1:3018`；现有 OpenResty 通过 HTTPS 转发。不新增公网应用端口，不改已有网站。
 - OpenResty 配置：`/opt/1panel/www/conf.d/schedule.wiki.jianges.com.conf`。代理覆盖 `X-Real-IP`，供应用限流；不要将容器端口暴露到公网。
@@ -38,8 +42,9 @@ Wiki 正式域名：**https://wiki.wustacm.com**，保持现有 Nuxt/Docus 静�
 
 ```powershell
 pnpm check:login-templates
+pnpm check:academic
 node scripts/package-schedule-service.mjs
-tar -czf .cache/wust-schedule-20260923-2.tar.gz -C .cache/schedule-release-20260923-2 .
+tar -czf .cache/wust-schedule-20260924-1.tar.gz -C .cache/schedule-release-20260924-1 .
 ```
 
 服务器维护：
@@ -53,6 +58,8 @@ systemctl status wust-schedule-cert-renew.timer
 ```
 
 ## 验证边界
+
+2026-09-24：`20260924-1` 容器健康，正式 `/api/academic` 的 HTTPS、CORS、二维码创建、等待轮询、退出撤销与拒绝未授权请求均通过。16 项教务测试、30 项课表测试和 107 条路由静态生成通过。服务器扫码确认后的真实成绩读取尚未再次验证；本地真实数据核对已通过。
 
 2026-09-23：16 项自动测试、类型检查、Wiki 静态生成通过；公网上以 Wiki Origin 验证 OPTIONS、inspect、二维码创建、轮询、隔离、清除均通过，不使用 Cookie。错误域名返回 403，原独立页面返回 404，根路径仅返回服务状态 JSON。HTTPS、自动续期演练与原有宿舍站点响应通过。
 

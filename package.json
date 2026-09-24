@@ -14,6 +14,7 @@
     "dev:login:lan": "node scripts/dev-login-templates.mjs --lan",
     "check:login-templates": "node --test scripts/login-templates.test.mjs scripts/school-schedule.test.mjs scripts/schedule-service.test.mjs",
     "check:schedule": "node --test scripts/schedule-display.test.mjs scripts/schedule-query-performance.test.mjs scripts/login-templates.test.mjs scripts/school-schedule.test.mjs scripts/schedule-service.test.mjs",
+    "check:academic": "node --test scripts/academic-store.test.mjs scripts/academic-query.test.mjs scripts/gpa.test.mjs",
     "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview --host 127.0.0.1",

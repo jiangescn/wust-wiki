@@ -4,7 +4,15 @@ Docus 文档站基础框架。保留西邮 Wiki 的分类、首页 15 个入口�
 
 正式 Wiki 域名为 **https://wiki.wustacm.com**，保持静态部署。课表后端为 **https://schedule.wiki.jianges.com**，只提供学校微信扫码 API，不承载另一个网站；接入与维护见 [课表后端说明](docs/schedule-deployment.md)。
 
-课程安排页 `/study/curriculum` 已嵌入学校微信扫码查询，显示当前学期课程、教师、地点、节次、周次与教务备注。入口为 `content/2.study/2.curriculum.md`，查询入口为 `app/components/content/ScheduleQuery.vue`，周课表与日列表复用 `ScheduleBoard.vue`，课表结果在当前浏览器保存七天。页面下方说明仍为待完善草稿，查询结果以教务系统为准。
+课程安排页 `/study/curriculum` 已嵌入学校微信扫码查询，显示当前学期课程、教师、地点、节次、周次与教务备注。入口为 `content/2.study/2.curriculum.md`，查询由 `AcademicSchedule.vue` 装配 `SchoolAcademicQuery.vue`，周课表与日列表复用 `ScheduleBoard.vue`，课表结果在当前浏览器保存七天。页面下方说明仍为待完善草稿，查询结果以教务系统为准。
+
+学业成绩与学分绩点合并为 `/study/grades`“成绩与绩点”，旧 `/study/gpa` 跳转到此页。成绩和课表共用学校扫码会话，登录成功起最多保留 24 小时；学校 Cookie 只留在后端内存，浏览器保存随机会话令牌。成绩结果只在页面内存展示，不写入浏览器持久缓存。前端调用 `/api/academic`，后端版本为 `20260924-1`；源码、接口和验证见 [教务查询说明](docs/academic-query.md)。
+
+成绩展示前端样例：`/study/grades?grades=sample`，入口为 `GradeDisplayPrototype.vue`，通过现有 `GradeQuery.vue` 切换。使用虚构课程，支持学期筛选、搜索、桌面表格/手机卡片、课程详情及绩点分段表；分段表按用户提供截图录入，仅供样例展示。复用 Wiki 外壳及 Nuxt UI 弹窗、按钮，自行实现样例布局；不请求教务接口，不保存演示数据。运行现有 `pnpm dev:login:lan` 即可预览。
+
+真实查询及样例均默认全部学期、最多展示 6 条，可展开其余成绩；切换学期或搜索时恢复折叠。展开按钮及计算器课程选择使用固定 16px SVG 箭头，通过旋转表示展开状态。样例汇总区直接使用 Wiki 主题变量，避免独立深色选择器失效造成浅底浅字。汇总和成绩行采用紧凑间距，仅保留“演示数据”标识。
+
+正式成绩页下方“学分与绩点”已加入 `GradeGpaCalculator.vue`，读取当前查询结果，支持课程勾选、最新重修成绩选择及学分加权计算；结果明确标注仅供参考。计算与去重逻辑在 `app/utils/gpa.ts`，纳入 `pnpm check:academic`。
 
 后续 Agent 开始工作前请阅读 [AGENTS.md](./AGENTS.md)，其中记录复用原则、源码入口、兼容适配、验证方法和未完成事项。
 

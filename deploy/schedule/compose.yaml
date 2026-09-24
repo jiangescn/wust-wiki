@@ -1,7 +1,7 @@
 services:
   schedule:
     build: .
-    image: wust-schedule:20260923-2
+    image: wust-schedule:20260924-1
     container_name: wust-schedule
     restart: unless-stopped
     ports:

@@ -11,7 +11,7 @@ export const homeEntries = [
   { title: '武科大俱乐部', icon: '🔬', description: '校园俱乐部、社团与交流群', to: '/coder' },
   { title: '个人博客', icon: '✍️', description: '校友技术博客汇总', to: '/coder/blog' },
   { title: '兴趣群列表', icon: '👥', description: 'QQ 兴趣群汇总，一键加群', to: '/life/groups' },
-  { title: '学分绩点', icon: '💯', description: '综合评价、评优保研', to: '/study/gpa' },
+  { title: '成绩与绩点', icon: '💯', description: '成绩查询、学分与绩点', to: '/study/grades' },
   { title: '竞赛与证书', icon: '🏆', description: '竞赛资讯、证书考试', to: '/study/contest' },
   { title: '周边去处', icon: '🗺️', description: '学校周边吃喝玩乐', to: '/life/nearby' },
   { title: '趣闻', icon: '🤣', description: '武科大那些有意思的事', to: '/campus/anecdote' },

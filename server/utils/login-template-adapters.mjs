@@ -1,5 +1,6 @@
 import { createUpstreamClient, form, jsonPost, inputValue, pngData } from './login-template-http.mjs'
 import { readSchoolSchedule } from './school-schedule.mjs'
+import { readSchoolGrades } from './school-grades.mjs'
 
 const passport = 'https://passport2.chaoxing.com'
 const kb = 'https://kb.chaoxing.com'
@@ -18,7 +19,7 @@ export const templateProviders = [
   { id: 'helper', title: '武科大助手扫码', scanner: '微信', description: '参考助手客户端的扫码接口，尝试读取本科课表。', boundary: '这是第三方助手服务器；遇到绑定或二次验证时停止。', officialUrl: teaching },
 ]
 
-export function createLoginAdapter(provider, fetchImpl = fetch) {
+export function createLoginAdapter(provider, fetchImpl = fetch, { authenticateOnly = false, readGrades = readSchoolGrades } = {}) {
   const origins = provider === 'chaoxing' ? [passport, kb] : provider === 'wust' ? [auth, 'https://bkjx.wust.edu.cn'] : provider === 'helper' ? [helper] : []
   if (!origins.length) throw new Error('UNKNOWN_PROVIDER')
   const client = createUpstreamClient(origins, fetchImpl)
@@ -27,6 +28,12 @@ export function createLoginAdapter(provider, fetchImpl = fetch) {
   const stop = (message, state = 'needs_action') => ({ state, message })
   return {
     close,
+    async read(resource) {
+      if (provider !== 'wust' || !authenticateOnly) throw new Error('INVALID_RESOURCE')
+      if (resource === 'schedule') return readSchoolSchedule(client)
+      if (resource === 'grades') return readGrades(client)
+      throw new Error('INVALID_RESOURCE')
+    },
     async start() {
       if (provider === 'chaoxing') {
         const html = await client.text(templateProviders[0].officialUrl)
@@ -80,7 +87,8 @@ export function createLoginAdapter(provider, fetchImpl = fetch) {
         const response = await client.request(teaching + '?ticket=' + encodeURIComponent(ticket.ticket))
         const html = response.bytes.toString('utf8')
         if (/lyuapServer\/login|<title[^>]*>\s*登录/.test(html)) return stop('学校扫码认证已响应，但教务系统仍要求登录，需继续核对票据交换。')
-        return await readSchoolSchedule(client)
+        secret = {}
+        return authenticateOnly ? { state: 'authenticated', message: '' } : await readSchoolSchedule(client)
       }
       const status = await client.json(helperPath + 'wechatLogin/status', jsonPost({ state: secret.state }))
       if (ok(status) && status.data?.status === 'pending') return { state: 'waiting', message: '等待微信扫码确认。' }

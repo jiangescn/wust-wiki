@@ -4,6 +4,7 @@ import { once } from 'node:events'
 import { request } from 'node:http'
 import { createScheduleServer } from '../server/schedule-service.mjs'
 import { createLoginStore } from '../server/utils/login-template-store.mjs'
+import { createAcademicStore } from '../server/utils/academic-store.mjs'
 
 // Use raw HTTP so the test can explicitly exercise reverse-proxy Host headers.
 function fetch(url, options = {}) {
@@ -22,6 +23,29 @@ function fetch(url, options = {}) {
     req.end()
   })
 }
+
+test('academic API shares school login for both resources with CORS, no-store and revocation', async () => {
+  const academicStore = createAcademicStore({ adapterFactory: () => ({ async start() { return { state: 'waiting', qr: 'fixture' } }, async poll() { return { state: 'authenticated' } }, async read(resource) { return { state: 'complete', result: resource === 'grades' ? { courses: [] } : { lessons: [] } } }, close() {} }) })
+  const server = createScheduleServer({ origin: 'https://schedule.example.test', allowedOrigins: ['https://wiki.example.org'], academicStore })
+  server.listen(0, '127.0.0.1'); await once(server, 'listening')
+  const base = `http://127.0.0.1:${server.address().port}/api/academic`
+  const headers = { Host: 'schedule.example.test', Origin: 'https://wiki.example.org', 'Content-Type': 'application/json' }
+  const post = (body, extra = {}) => fetch(base, { method: 'POST', headers: { ...headers, ...extra }, body: JSON.stringify(body) })
+  try {
+    const preflight = await fetch(base, { method: 'OPTIONS', headers: { ...headers, 'Access-Control-Request-Method': 'POST' } })
+    assert.equal(preflight.status, 204)
+    assert.equal((await post({ action: 'start' }, { Origin: 'https://evil.test' })).status, 403)
+    const created = await post({ action: 'start' })
+    assert.equal(created.headers.get('cache-control'), 'private, no-store')
+    const token = (await created.json()).sessionToken
+    const auth = { Authorization: `Bearer ${token}` }
+    assert.equal((await (await post({ action: 'poll' }, auth)).json()).state, 'authenticated')
+    for (const resource of ['grades', 'schedule']) assert.equal((await (await post({ action: 'query', resource }, auth)).json()).state, 'complete')
+    assert.equal((await post({ action: 'query', resource: 'grades' })).status, 401)
+    await post({ action: 'logout' }, auth)
+    assert.equal((await post({ action: 'inspect' }, auth)).status, 401)
+  } finally { await new Promise(resolve => server.close(resolve)) }
+})
 
 test('deployed service requires exact HTTPS origin, serves only school login, isolates sessions and limits new sessions per client', async () => {
   const origin = 'https://schedule.example.test'

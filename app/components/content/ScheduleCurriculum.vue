@@ -16,7 +16,7 @@ useHead(() => ({ link: !sample.value && apiBase.startsWith('https://')
       <ScheduleGridPrototype />
     </template>
     <template v-else>
-      <ScheduleQuery />
+      <AcademicSchedule />
     </template>
   </div>
   <template #fallback><p>正在加载课表…</p></template>
