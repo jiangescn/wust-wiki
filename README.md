@@ -117,7 +117,7 @@ pnpm generate
 美食页 `/life/food` 已加入「吃在武科」店铺目录、店内菜单、口碑榜和公开评价；默认南苑，先选店铺再加载菜单。源码入口 `app/components/content/FoodDirectory.vue`。复用现有 Wiki 外壳和 Nuxt UI 组件。开发与本地静态预览自带只读接口代理；**纯静态托管需另配同源转发，不能只上传静态文件就宣称接入完成**。详见 [美食页面接入](docs/food-integration.md)。
 
 - 正式构建设置 `NUXT_SITE_URL=https://wiki.wustacm.com`。课表 API 默认指向 `https://schedule.wiki.jianges.com`，可用 `NUXT_PUBLIC_SCHEDULE_API_BASE` 覆盖；静态页面配置变更后需重新生成。
-- 项目 GitHub 地址：`app/app.config.ts` 中将 `github: false` 改为实际仓库信息，再启用源文件编辑入口。当前不使用虚构仓库链接。
+- 项目 GitHub：[jiangescn/wust-wiki](https://github.com/jiangescn/wust-wiki)。`app/components/AppHeader.vue` 在主题切换按钮旁直接复用 Nuxt UI 图标按钮，桌面和手机端均显示，新标签页打开仓库；GitHub 图标沿用现有本地打包。`app/app.config.ts` 的 `github: false` 仍用于关闭 Docus 自动源文件编辑入口。
 - 首页“武科大导航”指向 `/navigation`：参考 CO 导航的双列分组与紧凑链接结构，使用现有 Wiki 的外壳、字体、主题色和卡片风格。共 78 个入口，均配有本地打包的 Lucide 图标，支持名称、用途与网址搜索。“发现更多”现有 8 组、52 项，覆盖 Wiki 查询、在线学习、考试升学、编程开发、AI 助手、在线工具、设计写作和软件下载；在线学习共 6 项，包含“你缺失的那门计算机课”。页面入口为 `app/pages/navigation.vue`，数据在 `app/data/navigation.ts` 与 `navigation-extra.ts`；[来源与访问边界](docs/navigation-sources.md)、[发现更多扩充来源](docs/navigation-discovery-sources.md)、[原版来源与适配](vendor/xupt-nav/README.md)。导航链接不代表外部系统登录已经验证。
 - 所有 WUST 校园信息、联系人和外部办事入口须由维护者填写。
 - 沁湖宿舍查询嵌入：部署沁湖站点时在其 `.env` 设置 `EMBED_ALLOWED_ORIGINS=https://wiki.wustacm.com`；Wiki 默认使用 `https://dorm.wustacm.com/embed`，如需测试或迁移可通过 `NUXT_PUBLIC_DORMITORY_EMBED_URL` 覆盖。Wiki 组件仅经 iframe 桥接传递区域、寝室号和最终允许公开的结果，不直接调用 `/api/query`，也不接触 GeeTest 验证字段。

@@ -20,6 +20,16 @@ const { open: searchOpen } = useContentSearch()
       <UNavigationMenu :items="wikiNavigation" class="hidden lg:flex" :ui="{ link: 'text-sm' }" />
       <UContentSearchButton class="md:hidden" />
       <UColorModeButton />
+      <UButton
+        icon="i-simple-icons-github"
+        to="https://github.com/jiangescn/wust-wiki"
+        target="_blank"
+        rel="noopener noreferrer"
+        color="neutral"
+        variant="ghost"
+        aria-label="WUST Wiki GitHub 仓库"
+        title="GitHub 仓库"
+      />
     </template>
     <template #body>
       <UNavigationMenu :items="wikiNavigation" orientation="vertical" />
