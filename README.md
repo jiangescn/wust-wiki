@@ -4,6 +4,8 @@ Docus 文档站基础框架。沿用西邮 Wiki 的分类与路径结构，按�
 
 正式 Wiki 域名为 **https://wiki.wustacm.com**，保持静态部署。课表后端为 **https://schedule.wiki.jianges.com**，只提供学校微信扫码 API，不承载另一个网站；接入与维护见 [课表后端说明](docs/schedule-deployment.md)。
 
+周边去处 `/life/nearby` 已发布地图页面：使用 MapLibre GL JS 与 OpenFreeMap 免费底图，支持地点选择、平滑定位、分类搜索和密集点聚合。地图独立于 Wiki 主题，每次进入默认亮色，缩放按钮下方可手动切换深浅色。按出行草稿补齐为 15 个去处/交通点位，默认将武科大黄家湖、青山两个校区置顶，并在地图上以蓝色定位点和圆角名称标签突出，不参与聚合或去处筛选。桌面列表独立滚动，手机地图在上、双列地点在下；OpenStreetMap / Wikidata 社区坐标仅作参考位置，页面状态为 `published`，正文仅保留地图与地点目录。维护入口及来源见 [周边地图说明](docs/nearby-map.md)。
+
 课程安排页 `/study/curriculum` 已嵌入学校微信扫码查询，显示当前学期课程、教师、地点、节次、周次与教务备注。入口为 `content/2.study/2.curriculum.md`，查询由 `AcademicSchedule.vue` 装配 `SchoolAcademicQuery.vue`，周课表与日列表复用 `ScheduleBoard.vue`，课表结果在当前浏览器保存七天。页面下方说明仍为待完善草稿，查询结果以教务系统为准。
 
 学业成绩与学分绩点合并为 `/study/grades`“成绩与绩点”，旧 `/study/gpa` 跳转到此页。成绩和课表共用学校扫码会话，登录成功起最多保留 24 小时；学校 Cookie 只留在后端内存，浏览器保存随机会话令牌。成绩结果只在页面内存展示，不写入浏览器持久缓存。前端调用 `/api/academic`，后端版本为 `20260924-1`；源码、接口和验证见 [教务查询说明](docs/academic-query.md)。

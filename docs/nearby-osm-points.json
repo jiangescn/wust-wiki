@@ -1,0 +1,186 @@
+{
+  "osm_base": "2026-06-01T08:52:28Z",
+  "elements": [
+    {
+      "type": "node",
+      "id": 5227950232,
+      "lat": 30.5366944,
+      "lon": 114.2956764,
+      "tags": {
+        "name": "复兴路",
+        "name:en": "Fuxing Road",
+        "operator": "武汉地铁集团有限公司",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wikidata": "Q10931740",
+        "wikipedia": "zh:复兴路站 (武汉地铁)"
+      }
+    },
+    {
+      "type": "node",
+      "id": 7118993540,
+      "lat": 30.5636607,
+      "lon": 114.3033494,
+      "tags": {
+        "name": "积玉桥",
+        "name:en": "Jiyuqiao",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wikidata": "Q15939311"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11389760009,
+      "lat": 30.4459077,
+      "lon": 114.2574358,
+      "tags": {
+        "name": "黄家湖（武科大）",
+        "name:en": "Huangjiahu (Wuhan University of Science and Technology)",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wikidata": "Q123597805"
+      }
+    },
+    {
+      "type": "way",
+      "id": 128398503,
+      "center": {
+        "lat": 30.580974,
+        "lon": 114.2891825
+      },
+      "tags": {
+        "highway": "pedestrian",
+        "int_name": "Jianghan Rd",
+        "name": "江汉路",
+        "ref": "江汉路步行街"
+      }
+    },
+    {
+      "type": "way",
+      "id": 233511368,
+      "center": {
+        "lat": 30.775834,
+        "lon": 114.2181778
+      },
+      "tags": {
+        "addr:city": "武汉市",
+        "addr:district": "黄陂区",
+        "addr:postcode": "430302",
+        "addr:province": "湖北省",
+        "aerodrome": "international",
+        "aerodrome:type": "international",
+        "aeroway": "aerodrome",
+        "alt_name": "Wuhan Airport",
+        "closest_town": "Wuhan",
+        "ele": "34",
+        "iata": "WUH",
+        "icao": "ZHHH",
+        "internet_access": "yes",
+        "internet_access:fee": "no",
+        "name": "武汉天河国际机场",
+        "name:en": "Wuhan Tianhe International Airport",
+        "name:it": "Aeroporto Internazionale di Wuhan Tianhe",
+        "name:zh": "武汉天河国际机场",
+        "name:zh-Latn-pinyin": "Wǔhàn Tiānhé Guójì Jīchǎng",
+        "note": "标注aerodrome=international是为了在公共交通地图图层显示该机场",
+        "operator": "湖北机场集团",
+        "operator:type": "government",
+        "source": "wikipedia",
+        "website": "http://www.whairport.com/jc/ch/index.jhtml",
+        "wikidata": "Q601091",
+        "wikipedia": "zh:武汉天河国际机场"
+      }
+    },
+    {
+      "type": "way",
+      "id": 491613595,
+      "center": {
+        "lat": 30.4416718,
+        "lon": 114.263847
+      },
+      "tags": {
+        "amenity": "university",
+        "name": "武汉科技大学(黄家湖校区)"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1054176899,
+      "center": {
+        "lat": 30.584778,
+        "lon": 114.3857299
+      },
+      "tags": {
+        "cycleway": "shared_lane",
+        "highway": "unclassified",
+        "name": "东湖绿道",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1073158160,
+      "center": {
+        "lat": 30.6253445,
+        "lon": 114.3636069
+      },
+      "tags": {
+        "addr:city": "武汉",
+        "addr:district": "青山",
+        "addr:housenumber": "947",
+        "addr:province": "湖北",
+        "addr:street": "和平大道",
+        "amenity": "university",
+        "education": "university",
+        "name": "武汉科技大学(青山校区)"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1390462403,
+      "center": {
+        "lat": 30.4790718,
+        "lon": 114.2865347
+      },
+      "tags": {
+        "building": "yes",
+        "name": "龙湖白沙天街A馆",
+        "shop": "mall"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1411750190,
+      "center": {
+        "lat": 30.55518,
+        "lon": 114.3019253
+      },
+      "tags": {
+        "highway": "pedestrian",
+        "name": "昙华林"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1416272579,
+      "center": {
+        "lat": 30.5179177,
+        "lon": 114.3347276
+      },
+      "tags": {
+        "amenity": "university",
+        "name": "武汉科技大学（洪山校区）"
+      }
+    }
+  ],
+  "license": "ODbL-1.0",
+  "retrieved": "2026-10-01",
+  "source": "https://www.openstreetmap.org/"
+}

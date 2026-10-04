@@ -1,0 +1,42 @@
+[
+  {
+    "id": "Q584376",
+    "coordinates": {
+      "latitude": 30.60967,
+      "longitude": 114.41898,
+      "altitude": null,
+      "precision": 1E-05,
+      "globe": "http://www.wikidata.org/entity/Q2"
+    }
+  },
+  {
+    "id": "Q5959771",
+    "coordinates": {
+      "latitude": 30.531313,
+      "longitude": 114.311773,
+      "altitude": null,
+      "precision": 0.010428843948416,
+      "globe": "http://www.wikidata.org/entity/Q2"
+    }
+  },
+  {
+    "id": "Q1010546",
+    "coordinates": {
+      "latitude": 30.62043,
+      "longitude": 114.24984,
+      "altitude": null,
+      "precision": 1E-05,
+      "globe": "http://www.wikidata.org/entity/Q2"
+    }
+  },
+  {
+    "id": "Q15916087",
+    "coordinates": {
+      "latitude": 30.4861,
+      "longitude": 114.425,
+      "altitude": null,
+      "precision": 0.010424286901871,
+      "globe": "http://www.wikidata.org/entity/Q2"
+    }
+  }
+]

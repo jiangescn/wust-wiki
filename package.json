@@ -49,6 +49,7 @@
     "docus": "5.13.0",
     "es-toolkit": "1.52.0",
     "katex": "^0.16.47",
+    "maplibre-gl": "6.11.2",
     "mermaid": "11.17.2",
     "nuxt": "4.5.2",
     "parse-domain": "8.4.0",

@@ -9,6 +9,7 @@ const sourceIcons = [...new Set([
   'catppuccin:file', 'catppuccin:yaml', 'catppuccin:changelog', 'catppuccin:markdown', 'catppuccin:typescript', 'lucide:pencil-line',
   'lucide:utensils', 'lucide:star', 'lucide:search', 'lucide:refresh-cw', 'lucide:map-pin', 'lucide:message-square', 'lucide:arrow-right', 'lucide:image',
   'lucide:compass', 'lucide:book-open', 'lucide:grid-2x2', 'lucide:monitor', 'lucide:building-2', 'lucide:graduation-cap',
+  'lucide:sun', 'lucide:moon',
 ])]
 
 export default defineNuxtConfig({

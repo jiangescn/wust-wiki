@@ -72,3 +72,9 @@ Coder 已由自行实现替换为原版迁移：`vendor/xupt-wiki/` 保存上游
 来源：https://github.com/nuxt-content/docus ，使用版本 5.13.0。
 
 通过 Nuxt layer 使用其文档布局、内容导航和搜索。`patches/docus@5.13.0.patch` 是类型兼容补丁，许可证见 `licenses/docus-MIT.txt`。
+
+## 周边去处地图
+
+地图渲染直接使用 [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js) 6.11.2（BSD-3-Clause）；完整包内许可及所含代码声明保存在 [`licenses/maplibre-gl-LICENSE.txt`](./licenses/maplibre-gl-LICENSE.txt)。未复制或改写 SDK 源码。
+
+底图使用 [OpenFreeMap](https://openfreemap.org/) 公共服务；地图保留服务样式提供的 OpenFreeMap、OpenMapTiles 和 OpenStreetMap 署名及链接。OpenStreetMap 数据使用 ODbL，见 [版权说明](https://www.openstreetmap.org/copyright)；校区和部分地点坐标同样来自 OpenStreetMap，所用节点及区域参考数据见 `docs/nearby-osm-points.json`。其余地点参考坐标来自 [Wikidata](https://www.wikidata.org/wiki/Wikidata:Licensing)，结构化数据按 CC0 提供；逐项来源及精度边界见 [`docs/nearby-map.md`](./docs/nearby-map.md)。页面布局、列表筛选、校区标记外观与 Vue 生命周期适配为本项目自行实现。
