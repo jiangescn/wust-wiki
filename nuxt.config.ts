@@ -16,6 +16,7 @@ export default defineNuxtConfig({
   extends: ['docus'],
   runtimeConfig: {
     public: {
+      campusManifestUrl: process.env.NUXT_PUBLIC_CAMPUS_MANIFEST_URL ?? 'https://models.wust.club/campus/latest.json',
       scheduleApiBase: process.env.WIKI_LOGIN_TEMPLATES === '1' ? '' : 'https://schedule.wiki.jianges.com',
       foodApiBase: process.env.NUXT_PUBLIC_FOOD_API_BASE || '/api/food',
       // The bridge owns GeeTest and the API call; this site only renders approved results.

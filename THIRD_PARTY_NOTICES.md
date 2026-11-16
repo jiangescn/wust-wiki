@@ -78,3 +78,7 @@ Coder 已由自行实现替换为原版迁移：`vendor/xupt-wiki/` 保存上游
 地图渲染直接使用 [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js) 6.11.2（BSD-3-Clause）；完整包内许可及所含代码声明保存在 [`licenses/maplibre-gl-LICENSE.txt`](./licenses/maplibre-gl-LICENSE.txt)。未复制或改写 SDK 源码。
 
 底图使用 [OpenFreeMap](https://openfreemap.org/) 公共服务；地图保留服务样式提供的 OpenFreeMap、OpenMapTiles 和 OpenStreetMap 署名及链接。OpenStreetMap 数据使用 ODbL，见 [版权说明](https://www.openstreetmap.org/copyright)；校区和部分地点坐标同样来自 OpenStreetMap，所用节点及区域参考数据见 `docs/nearby-osm-points.json`。其余地点参考坐标来自 [Wikidata](https://www.wikidata.org/wiki/Wikidata:Licensing)，结构化数据按 CC0 提供；逐项来源及精度边界见 [`docs/nearby-map.md`](./docs/nearby-map.md)。页面布局、列表筛选、校区标记外观与 Vue 生命周期适配为本项目自行实现。
+
+## 三维校园
+
+模型显示直接使用 [Three.js](https://github.com/mrdoob/three.js) 0.187.0 及其 GLTFLoader、OrbitControls 和 RoomEnvironment（MIT），完整许可见 [`licenses/three-MIT.txt`](./licenses/three-MIT.txt)。Vue 生命周期、Wiki 页面装配与交互按钮为本项目实现。校园模型来自用户的校园建模项目，版本与导出边界见 [`docs/campus-model.md`](./docs/campus-model.md)。模型素材不因渲染库的 MIT 许可而自动获得相同许可。
