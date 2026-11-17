@@ -6,6 +6,7 @@ const manifestUrl = useRuntimeConfig().public.campusManifestUrl
 const modelLabel = manifestUrl ? '黄家湖校区' : '教一楼'
 const progress = ref('')
 const loadedParts = ref(0)
+const modelRequestConcurrency = 6
 
 const shell = ref<HTMLElement>()
 const container = ref<HTMLElement>()
@@ -175,32 +176,57 @@ async function initialize() {
     observer.observe(host)
     resize()
     const loader = new GLTFLoader()
-    for (const [index, part] of parts.entries()) {
-      progress.value = `已加载 ${index}/${parts.length}`
-      const bytes = await fetchCampusResource(part.url, request.signal)
-      if (part.bytes && bytes.byteLength !== part.bytes) throw new Error('模型分块大小与清单不符')
-      const gltf = await loader.parseAsync(bytes, new URL('.', part.url).href)
-      if (!alive || current !== generation || request.signal.aborted || closed) {
-        releaseModel(gltf.scene)
-        return
-      }
-      model.add(gltf.scene)
-      bounds.union(new THREE.Box3().setFromObject(gltf.scene))
-      bounds.getBoundingSphere(sphere)
-      if (!Number.isFinite(sphere.radius) || sphere.radius <= 0) throw new Error('Model has no visible geometry')
-      loadedParts.value = index + 1
-      progress.value = `已加载 ${index + 1}/${parts.length}`
-      camera.near = Math.max(sphere.radius / 10000, 0.001)
-      camera.far = sphere.radius * 40
-      camera.updateProjectionMatrix()
-      controls.minDistance = sphere.radius * 0.03
-      controls.maxDistance = sphere.radius * 12
-      if (!viewAdjusted) fit()
-      render()
-      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
-      if (!alive || current !== generation || request.signal.aborted || closed) return
+    let nextPart = 0
+    let failedParts = 0
+    let parseTail = Promise.resolve()
+    const active = () => alive && current === generation && !request.signal.aborted && !closed
+    const updateProgress = () => {
+      progress.value = `已加载 ${loadedParts.value}/${parts.length}${failedParts ? `，${failedParts} 块失败` : ''}`
     }
-    status.value = 'ready'
+    async function loadParts() {
+      while (active()) {
+        const part = parts[nextPart++]
+        if (!part) return
+        try {
+          const bytes = await fetchCampusResource(part.url, request.signal)
+          if (!active()) return
+          if (part.bytes && bytes.byteLength !== part.bytes) throw new Error('模型分块大小与清单不符')
+          const pending = parseTail.then(async () => {
+            if (!active()) return
+            const gltf = await loader.parseAsync(bytes, new URL('.', part.url).href)
+            if (!active()) {
+              releaseModel(gltf.scene)
+              return
+            }
+            model.add(gltf.scene)
+            bounds.union(new THREE.Box3().setFromObject(gltf.scene))
+            bounds.getBoundingSphere(sphere)
+            if (!Number.isFinite(sphere.radius) || sphere.radius <= 0) throw new Error('Model has no visible geometry')
+            loadedParts.value++
+            updateProgress()
+            camera.near = Math.max(sphere.radius / 10000, 0.001)
+            camera.far = sphere.radius * 40
+            camera.updateProjectionMatrix()
+            controls.minDistance = sphere.radius * 0.03
+            controls.maxDistance = sphere.radius * 12
+            if (!viewAdjusted) fit()
+            render()
+            await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+          })
+          parseTail = pending.catch(() => {})
+          await pending
+        } catch {
+          if (!active()) return
+          failedParts++
+          updateProgress()
+        }
+      }
+    }
+    updateProgress()
+    await Promise.all(Array.from({ length: Math.min(modelRequestConcurrency, parts.length) }, () => loadParts()))
+    if (!active()) return
+    if (failedParts && !loadedParts.value) dispose()
+    status.value = failedParts ? 'error' : 'ready'
   } catch {
     if (!alive || current !== generation || !loadedParts.value) dispose()
     if (alive && current === generation) {
@@ -251,7 +277,7 @@ onBeforeUnmount(() => {
       </div>
       <div v-if="status !== 'ready'" class="campus-state" role="status">
         <UButton v-if="status === 'idle'" size="sm" color="neutral" variant="outline" @click="initialize">加载全校园</UButton>
-        <span v-else>{{ status === 'loading' ? progress || '模型加载中' : loadedParts ? `已加载 ${loadedParts} 块，后续加载失败` : '模型暂时无法加载' }}</span>
+        <span v-else>{{ status === 'loading' ? progress || '模型加载中' : loadedParts ? `已加载 ${loadedParts} 块，部分分块加载失败` : '模型暂时无法加载' }}</span>
         <UButton v-if="status === 'error'" size="sm" color="neutral" variant="outline" @click="initialize">重试</UButton>
       </div>
     </div>
