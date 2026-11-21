@@ -22,7 +22,9 @@ const metaSlots = computed(() => (page.value?.meta?.slots || {}) as Record<strin
       </details>
       <div class="showcase-main">
         <ContentRenderer :value="page" :components="components" :prose="false" class="article md-tech" tag="article" />
-        <section v-if="metaSlots.copyright" class="article"><h2>{{ metaSlots.copyright.props?.title }}</h2><ContentRenderer :value="metaSlots.copyright" :components="components" /></section>
+        <BlogArticleCopyright v-if="metaSlots.copyright" :title="metaSlots.copyright.props?.title">
+          <ContentRenderer :value="metaSlots.copyright" :components="components" />
+        </BlogArticleCopyright>
       </div>
       <aside class="showcase-aside" aria-label="示例目录与侧栏插槽">
         <details v-if="page.body.toc?.links?.length" class="showcase-toc showcase-desktop-toc" open><summary>本页目录</summary><nav aria-label="本页目录"><NuxtLink v-for="item in page.body.toc.links" :key="item.id" :to="`#${encodeURIComponent(item.id)}`">{{ item.text }}</NuxtLink></nav></details>

@@ -55,12 +55,13 @@ defineOgImage('Docs', {
 const github = computed(() => appConfig.github ? appConfig.github : null)
 
 // Reuse the showcase's rehype-meta-slots output; ordinary documents use Blog-prefixed components.
+const articleMetaSlots = computed(() => (page.value?.meta?.slots || {}) as Record<string, {
+  type: 'minimark'
+  value: unknown[]
+  props?: { title?: string }
+}>)
 const articleAsideSlots = computed(() => Object.fromEntries(
-  Object.entries((page.value?.meta?.slots || {}) as Record<string, {
-    type: 'minimark'
-    value: unknown[]
-    props?: { title?: string }
-  }>).filter(([name]) => name.startsWith('aside-')),
+  Object.entries(articleMetaSlots.value).filter(([name]) => name.startsWith('aside-')),
 ))
 
 const editLink = computed(() => {
@@ -118,6 +119,9 @@ addPrerenderPath(`/raw${route.path}.md`)
         class="article md-tech"
         tag="article"
       />
+      <BlogArticleCopyright v-if="articleMetaSlots.copyright" :title="articleMetaSlots.copyright.props?.title">
+        <ContentRenderer :value="articleMetaSlots.copyright" :components="blogProseComponents" :prose="false" />
+      </BlogArticleCopyright>
       </div>
 
       <USeparator v-if="github">

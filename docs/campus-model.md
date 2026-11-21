@@ -14,6 +14,10 @@
 
 页面只在打开时下载模型与 Three.js 模块；其他文章不加载 GLB。模型没有外部纹理请求。画面在交互、尺寸变化与重置时重绘，静止时不持续刷新；像素比最高 1.5。离开页面时取消请求并释放 GPU 资源。传输失败或 WebGL 不可用时保留海报和重试入口。
 
+## 版权声明
+
+模型查看器下方的声明写在 `content/1.campus/9.map.md` 的 `meta-copyright` 插槽中，与博客示例共用 `BlogArticleCopyright.vue`。声明适用于本页展示的原创三维模型及其模型文件。
+
 ## 来源与更新
 
 校园建模项目中的 `model/buildings/jiao1/working.blend` 是源，当前 SHA-256 为 `dc6902c4c6a09f6685b2332f995505999f4ea690f16e9b1e368af2f2bf7b3130`。导出脚本与逐部件报告保存在该项目的 `deliverables/wiki-teach1-pilot-20261107/`。Wiki 存储网页副本，不存整个校园 Blender 工程。
