@@ -24,6 +24,7 @@ const { data: updates } = await useAsyncData('recent-updates', () => queryCollec
         <span class="wiki-entry-emoji" aria-hidden="true">{{ item.icon }}</span>
         <h2>{{ item.title }}</h2><p>{{ item.description }}</p>
       </NuxtLink>
+      <WikiAndroidDownload />
     </section>
     <section class="wiki-updates" aria-labelledby="updates-title">
       <div class="wiki-section-heading"><h2 id="updates-title">最近更新</h2><NuxtLink to="/changelog">完整更新日志 <span aria-hidden="true">→</span></NuxtLink></div>
