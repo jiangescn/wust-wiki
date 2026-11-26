@@ -1,17 +1,13 @@
-name: Android release
-
+name: Android release verification
 on:
-  workflow_dispatch:
   push:
-    tags: ['android-v*']
-
+    branches:
+      - android/verify-release-config-0400761
 permissions:
   contents: read
-
 concurrency:
-  group: android-production-release
+  group: android-release-verification
   cancel-in-progress: false
-
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -20,15 +16,15 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
           cache: pnpm
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.5'
+          flutter-version: 3.41.5
           cache: true
       - name: Build Wiki reader assets
         run: |
@@ -49,62 +45,75 @@ jobs:
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
+        run: >
           set -euo pipefail
+
           : "${ANDROID_KEYSTORE_BASE64:?Missing Android release keystore}"
+
           : "${ANDROID_STORE_PASSWORD:?Missing Android keystore password}"
+
           : "${ANDROID_KEY_ALIAS:?Missing Android signing key alias}"
+
           : "${ANDROID_KEY_PASSWORD:?Missing Android signing key password}"
-          export ANDROID_KEYSTORE_PATH="$(mktemp "$RUNNER_TEMP/wiki-android-key.XXXXXX")"
+
+          export ANDROID_KEYSTORE_PATH="$(mktemp
+          "$RUNNER_TEMP/wiki-android-key.XXXXXX")"
+
           trap 'rm -f "$ANDROID_KEYSTORE_PATH"' EXIT
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode >
+          "$ANDROID_KEYSTORE_PATH"
+
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          "ndk;28.2.13676358"
+
           chmod +x android/gradlew
-          flutter build apk --release --no-pub --split-per-abi --target-platform android-arm64,android-x64
+
+          flutter build apk --release --no-pub --split-per-abi --target-platform
+          android-arm64,android-x64
       - name: Stage APKs and update manifest
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
+          RELEASE_TAG: android-v0.6.11
+        run: >
           if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
             version="$(sed -n 's/^version: *\([^+ ]*\)+.*/\1/p' mobile/pubspec.yaml)"
             RELEASE_TAG="android-v$version"
           fi
+
           python3 mobile/scripts/publish-update.py stage \
             --apk-dir mobile/build/app/outputs/flutter-apk --output "$RUNNER_TEMP/wiki-android-release" \
             --tag "$RELEASE_TAG" --notes mobile/release-notes.txt \
             --aapt "$ANDROID_HOME/build-tools/36.0.0/aapt" \
             --apksigner "$ANDROID_HOME/build-tools/36.0.0/apksigner"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: android-release
-          path: ${{ runner.temp }}/wiki-android-release/
-          if-no-files-found: error
-
-  publish:
-    needs: build
-    if: github.event_name == 'push'
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: '3.11.3'
-      - uses: actions/download-artifact@v4
-        with:
-          name: android-release
-          path: ${{ runner.temp }}/wiki-android-release/
-      - name: Publish APKs and update feed to R2
+      - name: Verify release certificate against R2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
-          AWS_PAGER: ''
+          AWS_PAGER: ""
           R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
-        run: |
+        run: >
           set -euo pipefail
-          : "${AWS_ACCESS_KEY_ID:?Missing R2 access key}"
-          : "${AWS_SECRET_ACCESS_KEY:?Missing R2 secret key}"
-          : "${R2_ENDPOINT:?Missing R2 S3 endpoint}"
-          python3 mobile/scripts/publish-update.py publish \
-            --release "$RUNNER_TEMP/wiki-android-release" \
-            --bucket wust-wiki-downloads --endpoint "$R2_ENDPOINT"
+
+          aws --endpoint-url "$R2_ENDPOINT" s3api get-object --bucket
+          wust-wiki-downloads --key wiki/latest.json
+          "$RUNNER_TEMP/wiki-published-release.json" > /dev/null
+
+          python3 - "$RUNNER_TEMP/wiki-android-release/latest.json"
+          "$RUNNER_TEMP/wiki-published-release.json" <<'PY'
+
+          import json, sys
+
+          from pathlib import Path
+
+          built, published = [json.loads(Path(path).read_text(encoding="utf-8"))
+          for path in sys.argv[1:]]
+
+          if built["signerSha256"] != published["signerSha256"]:
+              raise SystemExit("GitHub signing certificate differs from the active Android release.")
+          if built["packageName"] != published["packageName"]:
+              raise SystemExit("GitHub package identity differs from the active Android release.")
+          print("Verified the signed APKs against the active certificate and
+          authenticated read of the R2 manifest.")
+
+          PY
