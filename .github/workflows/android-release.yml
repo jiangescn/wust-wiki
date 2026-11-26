@@ -26,6 +26,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0 ndk;28.2.13676358'
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.41.5'
@@ -58,7 +61,6 @@ jobs:
           export ANDROID_KEYSTORE_PATH="$(mktemp "$RUNNER_TEMP/wiki-android-key.XXXXXX")"
           trap 'rm -f "$ANDROID_KEYSTORE_PATH"' EXIT
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
           chmod +x android/gradlew
           flutter build apk --release --no-pub --split-per-abi --target-platform android-arm64,android-x64
       - name: Stage APKs and update manifest
