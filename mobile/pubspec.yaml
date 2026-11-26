@@ -1,0 +1,24 @@
+name: wust_wiki
+description: 武科大 Wiki 安卓客户端
+publish_to: none
+version: 0.6.11+36
+environment:
+  sdk: '>=3.9.0 <4.0.0'
+dependencies:
+  crypto: ^3.0.8
+  html: 0.15.7
+  flutter_localizations:
+    sdk: flutter
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
+  flutter_widget_from_html_core: ^0.17.0
+  flutter:
+    sdk: flutter
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
+  assets:
+    - licenses/
+    - assets/native.json

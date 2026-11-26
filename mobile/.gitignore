@@ -1,0 +1,27 @@
+.dart_tool/
+build/
+.flutter-plugins-dependencies
+.idea/
+*.iml
+android/local.properties
+android/.gradle/
+android/.kotlin/
+android/app/src/main/jniLibs/
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+*.jks
+*.keystore
+*.p12
+*.pfx
+key.properties
+keystore.properties
+
+# Local test evidence and retired native assets.
+/verification/
+/migration/decisions.tsv
+/assets/beds/
+
+# Android web assets regenerated from the Wiki and mobile tool sources.
+/android/app/src/main/assets/today.js
+/android/app/src/main/assets/tools.html
+/android/app/src/main/assets/wiki-reader.zip
+/android/app/src/main/assets/wiki-reader.partial
