@@ -224,6 +224,9 @@ class AcademicStore extends ChangeNotifier {
   ({String id, String name, String filter})? laundryShop;
   int expires = 0, savedUntil = 0;
   Json? schedule;
+  List<Json>? gradeCourses;
+  final _academicRequests = <String, Future<Json>>{};
+  int _academicAccount = 0;
   bool initialized = false;
   List<Lesson> lessons = [];
   bool get loggedIn => token.isNotEmpty;
@@ -352,11 +355,21 @@ class AcademicStore extends ChangeNotifier {
   Future<void> clearSchedule() async {
     schedule = null;
     lessons = [];
+    savedUntil = 0;
     notifyListeners();
     await platform.invokeMethod('save', {'snapshot': ''});
   }
 
   Future<void> remember(String value, int until) async {
+    final switched = token != value;
+    if (switched) {
+      _academicAccount++;
+      _academicRequests.clear();
+      gradeCourses = null;
+      schedule = null;
+      lessons = [];
+      savedUntil = 0;
+    }
     _restoredToken = '';
     token = value;
     if (value != 'local') {
@@ -370,18 +383,20 @@ class AcademicStore extends ChangeNotifier {
     }
     expires = until;
     notifyListeners();
-    await platform.invokeMethod('save', {'token': value, 'expires': until});
+    await platform.invokeMethod('save', {
+      'token': value,
+      'expires': until,
+      if (switched) 'snapshot': '',
+    });
   }
 
   Future<void> logout() async {
     final old = token;
     await remember('', 0);
     if (old.isNotEmpty) await api('logout', old);
-    if (old == 'local') await clearSchedule();
   }
 
   Future<void> loginLocal(String username, String password) async {
-    await clearSchedule();
     await remember('', 0);
     await sendLocal({
       'action': 'login',
@@ -389,6 +404,58 @@ class AcademicStore extends ChangeNotifier {
       'password': password,
     });
     await remember('local', 0);
+    unawaited(loadAcademicOverview());
+  }
+
+  Future<void> loadAcademicOverview() async {
+    final account = _academicAccount;
+    for (final resource in ['schedule', 'grades']) {
+      if (account != _academicAccount || !loggedIn) return;
+      if (resource == 'grades' && gradeCourses != null) return;
+      try {
+        await academicResult(resource);
+      } on Exception {
+        // Each resource has its own retry entry.
+      }
+    }
+  }
+
+  Future<Json> academicResult(String resource) {
+    final pending = _academicRequests[resource];
+    if (pending != null) return pending;
+    final account = _academicAccount;
+    final bearer = token;
+    final request = _fetchAcademicResult(resource, bearer, account)
+        .whenComplete(() {
+          if (_academicAccount == account) _academicRequests.remove(resource);
+        });
+    _academicRequests[resource] = request;
+    return request;
+  }
+
+  Future<Json> _fetchAcademicResult(
+    String resource,
+    String bearer,
+    int account,
+  ) async {
+    final response = await api('query', bearer, resource: resource);
+    if (account != _academicAccount) {
+      throw const FormatException('学校账号已切换');
+    }
+    if (response['state'] != 'complete' || response['result'] is! Json) {
+      throw FormatException(response['message'] ?? '教务查询尚未完成');
+    }
+    final data = response['result'] as Json;
+    switch (resource) {
+      case 'schedule':
+        if (data['lessons'] is! List) throw const FormatException('课表读取失败');
+        await saveSchedule(data);
+      case 'grades':
+        if (data['courses'] is! List) throw const FormatException('成绩读取失败');
+        gradeCourses = (data['courses'] as List).cast<Json>();
+        notifyListeners();
+    }
+    return data;
   }
 
   Future<Json> sendLocal(Json body) async {
@@ -423,7 +490,6 @@ class AcademicStore extends ChangeNotifier {
         localVerified = false;
         if (error.code == 'login_required' && token == 'local') {
           await remember('', 0);
-          await clearSchedule();
         }
       }
       throw AcademicApiException(
@@ -729,6 +795,7 @@ class _QueryState extends State<AcademicQuery> with WidgetsBindingObserver {
           waiting = null;
         });
         await store.remember(t, d['expiresAt']);
+        unawaited(store.loadAcademicOverview());
         if (mounted && run == n) await query(n);
       } else if (d['state'] == 'waiting' || d['state'] == 'scanned') {
         final status = d['message'];
@@ -749,7 +816,7 @@ class _QueryState extends State<AcademicQuery> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> query(int n) async {
+  Future<void> query(int n, {bool refresh = false}) async {
     if (widget.resource == 'login') {
       if (mounted && run == n) {
         if (widget.onClose != null) {
@@ -764,20 +831,25 @@ class _QueryState extends State<AcademicQuery> with WidgetsBindingObserver {
       return;
     }
     final resource = widget.resource == 'gpa' ? 'grades' : widget.resource;
+    final cached = store.gradeCourses;
+    if (resource == 'grades' && cached != null && !refresh) {
+      setState(() {
+        grades = cached;
+        message = '';
+        waiting = null;
+      });
+      return;
+    }
     setState(
       () => waiting = phase(
         '正在查询${schoolResourceLabel(resource)}',
         resource: resource,
       ),
     );
-    final r = await store.api('query', store.token, resource: resource);
+    final data = await store.academicResult(resource);
     if (!mounted || n != run) return;
-    if (r['state'] != 'complete')
-      throw FormatException(r['message'] ?? '教务查询尚未完成。');
-    final data = r['result'] as Json;
     if (widget.resource == 'schedule') {
-      await store.saveSchedule(data);
-      if (mounted) Navigator.pop(context);
+      Navigator.pop(context);
     } else {
       setState(() {
         grades = (data['courses'] as List).cast<Json>();
@@ -849,6 +921,25 @@ class _QueryState extends State<AcademicQuery> with WidgetsBindingObserver {
             ? BackButton(onPressed: widget.onClose)
             : null,
         actions: [
+          if (entries != null && widget.resource == 'grades')
+            IconButton(
+              tooltip: '刷新成绩',
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: waiting == null
+                  ? () async {
+                      final n = run;
+                      try {
+                        await query(n, refresh: true);
+                      } on Exception {
+                        if (!mounted || n != run) return;
+                        setState(() => waiting = null);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('成绩刷新失败，请重试')),
+                        );
+                      }
+                    }
+                  : null,
+            ),
           if (portal != null)
             IconButton(
               tooltip: '用系统浏览器打开',
@@ -983,7 +1074,19 @@ class _QueryState extends State<AcademicQuery> with WidgetsBindingObserver {
                     ),
                 ],
               )
-            : GradeResults(entries),
+            : Column(
+                children: [
+                  if (waiting != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: SchoolOperationStatus(
+                        store.foundation,
+                        fallback: waiting,
+                      ),
+                    ),
+                  Expanded(child: GradeResults(entries)),
+                ],
+              ),
       ),
     );
   }

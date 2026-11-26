@@ -7,6 +7,7 @@ import { campusTimes } from '../../app/utils/schedule.ts'
 import { navigationCategories } from '../../app/data/navigation.ts'
 import { navigationExtras, wikiLifeCategory } from '../../app/data/navigation-extra.ts'
 import { homeEntries } from '../../app/data/wiki.ts'
+import { buildNavigationIcons } from './build-navigation-icons.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const read = p => fs.readFileSync(path.join(root,p), 'utf8')
@@ -24,5 +25,6 @@ for (const a of all(links,n=>n.tagName==='a')) {
 }
 if(!articles['/campus/accommodation']) throw Error('缺少住宿正文')
 const data={times:campusTimes, articles,homeEntries,places:[...nearbyDefaultCampuses,...nearbyPlaces],navigation:[...navigationCategories,wikiLifeCategory,...navigationExtras], curricula:json('curricula'), contests:{2025:json('competitions-2025'),2024:json('competitions-2024')}}
+data.navigationIcons = buildNavigationIcons(data.navigation)
 fs.writeFileSync(path.join(root,'mobile/assets/native.json'),JSON.stringify(data))
 console.log(Object.keys(articles).length+' 篇文章；'+data.places.length+' 个地图点')

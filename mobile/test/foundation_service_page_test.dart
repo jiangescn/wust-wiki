@@ -70,6 +70,53 @@ Future<void> _tap(WidgetTester tester, String label) async {
 }
 
 void main() {
+  testWidgets('受限通知使用原文登录，公共列表不要求教务账号', (tester) async {
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(
+      SystemChannels.platform_views,
+      (call) async => call.method == 'create' ? 0 : null,
+    );
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(
+        SystemChannels.platform_views,
+        null,
+      ),
+    );
+    final store = _Store()
+      ..respond = (resource, _) async {
+        if (resource == 'notice-detail') {
+          throw const AcademicApiException(
+            '学校服务会话失效',
+            502,
+            code: 'authentication_required',
+          );
+        }
+        return {
+          'rows': [
+            _row(
+              '受限通知',
+              '2026-11-19',
+              action: _action('查看通知', 'notice-detail', {
+                'url': 'https://www.wust.edu.cn/info/1122/12345.htm',
+              }),
+            ),
+          ],
+        };
+      };
+    await _mount(tester, store, resource: 'notices');
+    expect(store.loggedIn, isFalse);
+    await _tap(tester, '受限通知');
+    expect(find.text('登录查看原文'), findsOneWidget);
+    expect(find.text('学校统一认证'), findsNothing);
+    await _tap(tester, '登录查看原文');
+    final portal = tester.widget<AndroidView>(find.byType(AndroidView));
+    expect(portal.viewType, 'wiki/school-service');
+    expect(portal.creationParams, {
+      'notice': 'https://www.wust.edu.cn/info/1122/12345.htm',
+    });
+  });
+
   testWidgets('图书馆首屏展示借阅和应还日期，切换到期列表无需再查询', (tester) async {
     final store = _Store()
       ..respond = (_, _) async => {
@@ -775,7 +822,9 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 240));
+    expect(find.text('取消查询'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 220));
     await tester.tap(find.text('取消查询'));
     await tester.pumpAndSettle();
     expect(store.cancellations, 1);

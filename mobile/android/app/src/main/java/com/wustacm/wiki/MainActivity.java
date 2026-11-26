@@ -46,6 +46,22 @@ public final class MainActivity extends FlutterActivity {
                     }); break;
                 }
                 case "restore": restore(result); break;
+                case "loadAppearance": {
+                    Map<String,Object> appearance = new java.util.HashMap<>();
+                    appearance.put("theme", prefs.getString("appearanceTheme", "system"));
+                    appearance.put("lowPerformance", prefs.getBoolean("lowPerformance", false));
+                    result.success(appearance);
+                    break;
+                }
+                case "saveAppearance":
+                    String theme = call.argument("theme");
+                    if (!"light".equals(theme) && !"dark".equals(theme)) theme = "system";
+                    prefs.edit()
+                        .putString("appearanceTheme", theme)
+                        .putBoolean("lowPerformance", Boolean.TRUE.equals(call.argument("lowPerformance")))
+                        .apply();
+                    result.success(null);
+                    break;
                 case "wikiUpdateInfo": updater.info(result); break;
                 case "recordWikiUpdateCheck": updater.recordCheck(); result.success(null); break;
                 case "installWikiUpdate":

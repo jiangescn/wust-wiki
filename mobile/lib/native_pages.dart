@@ -1,7 +1,9 @@
 import 'archive_motion.dart';
 import 'blog_surface.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'article_reader.dart';
+import 'delayed_loading.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'academic.dart';
@@ -428,28 +430,138 @@ class _NativeState extends State<NativePage>
     ]);
   }
 
+  Widget navigation(Json data) {
+    final catalog = data['navigationIcons'] as Json;
+    final categoryIcons = catalog['categoryIcons'] as Json;
+    final icons = catalog['assets'] as Json;
+    final groups = <(Json, List<Json>)>[];
+    for (final group in (data['navigation'] as List).cast<Json>()) {
+      final matching = (group['links'] as List)
+          .cast<Json>()
+          .where(
+            (link) => matches([
+              link['title'],
+              link['description'],
+              group['title'],
+              link['keywords'],
+            ]),
+          )
+          .toList();
+      if (matching.isNotEmpty) groups.add((group, matching));
+    }
+
+    Widget icon(String? name, {bool tile = false}) {
+      final tint = blogTint(context, 220);
+      final key = (name ?? 'compass').replaceFirst('lucide:', '');
+      final svg = icons[key] as String?;
+      final glyph = svg == null
+          ? Icon(Icons.explore_outlined, size: 20, color: tint)
+          : SvgPicture.string(
+              svg,
+              width: 20,
+              height: 20,
+              colorFilter: ColorFilter.mode(tint, BlendMode.srcIn),
+              excludeFromSemantics: true,
+            );
+      if (!tile) return glyph;
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: tint.withValues(alpha: .13),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Padding(padding: const EdgeInsets.all(8), child: glyph),
+      );
+    }
+
+    return Column(
+      children: [
+        Padding(padding: const EdgeInsets.all(12), child: search('搜索导航')),
+        if (groups.isEmpty)
+          const Expanded(child: Center(child: Text('没有符合条件的条目')))
+        else
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+              itemCount: groups.length,
+              itemBuilder: (context, index) {
+                final (group, links) = groups[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(6, 4, 6, 8),
+                        child: Row(
+                          children: [
+                            icon(
+                              (categoryIcons[group['id']] ?? group['icon'])
+                                  as String?,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              group['title'] as String,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      BlogPanel(
+                        Column(
+                          children: [
+                            for (final (i, link) in links.indexed) ...[
+                              if (i > 0)
+                                const Divider(
+                                  height: 1,
+                                  indent: 60,
+                                  endIndent: 16,
+                                ),
+                              ListTile(
+                                leading: icon(
+                                  link['icon'] as String?,
+                                  tile: true,
+                                ),
+                                title: Text(link['title'] as String),
+                                subtitle:
+                                    (link['description'] as String? ?? '')
+                                        .isEmpty
+                                    ? null
+                                    : Text(link['description'] as String),
+                                trailing: Icon(
+                                  Uri.parse(link['url'] as String).hasScheme
+                                      ? Icons.north_east_rounded
+                                      : Icons.chevron_right_rounded,
+                                  size: 17,
+                                ),
+                                onTap: () => open(link['url'], link['title']),
+                              ),
+                            ],
+                          ],
+                        ),
+                        padding: EdgeInsets.zero,
+                        quiet: true,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget directory(Json d) {
     final contests =
-            widget.path == '/tools/contests' || widget.path == '/study/contest',
-        nav = widget.path == '/navigation';
+        widget.path == '/tools/contests' || widget.path == '/study/contest';
     final List<Json> records =
-        (contests
-                ? d['contests'][year]
-                : nav
-                ? [
-                    for (final g in d['navigation'])
-                      for (final e in g['links'])
-                        <String, dynamic>{...e as Json, 'category': g['title']},
-                  ]
-                : d['curricula']['records'])
+        (contests ? d['contests'][year] : d['curricula']['records'])
             .cast<Json>();
     final visible = records
         .where(
           (r) => matches(
             contests
                 ? [r['name'], r['organizers'], r['host'], r['audience']]
-                : nav
-                ? [r['title'], r['description'], r['category'], r['keywords']]
                 : [r['program'], r['college'], r['level']],
           ),
         )
@@ -461,13 +573,7 @@ class _NativeState extends State<NativePage>
           padding: const EdgeInsets.all(12),
           child: Column(
             children: [
-              search(
-                contests
-                    ? '竞赛名称或主办单位'
-                    : nav
-                    ? '搜索导航'
-                    : '搜索专业或学院',
-              ),
+              search(contests ? '竞赛名称或主办单位' : '搜索专业或学院'),
               if (contests) const SizedBox(height: 8),
               if (contests)
                 Row(
@@ -590,34 +696,6 @@ class _NativeState extends State<NativePage>
                             padding: EdgeInsets.zero,
                             hue: 32,
                             quiet: true,
-                          ),
-                        );
-                      if (nav)
-                        return ArchivePart.staggered(
-                          i,
-                          child: BlogPanel(
-                            ListTile(
-                              leading: const BlogIcon(
-                                Icons.explore_outlined,
-                                hue: 178,
-                              ),
-                              title: Text(r['title']),
-                              subtitle: Text(
-                                [
-                                  r['category'],
-                                  r['description'],
-                                ].whereType<String>().join(' · '),
-                              ),
-                              trailing: Icon(
-                                Uri.tryParse(r['url'])?.hasScheme == true
-                                    ? Icons.north_east_rounded
-                                    : Icons.chevron_right_rounded,
-                                size: 17,
-                              ),
-                              onTap: () => open(r['url'], r['title']),
-                            ),
-                            padding: EdgeInsets.zero,
-                            hue: 178,
                           ),
                         );
                       return ArchivePart.staggered(
@@ -859,9 +937,10 @@ class _NativeState extends State<NativePage>
         return gpa();
       case '/tools/contests':
       case '/study/contest':
-      case '/navigation':
       case '/study/status':
         return directory(d);
+      case '/navigation':
+        return navigation(d);
       case '/life/nearby':
         return nearby(d);
     }
@@ -898,7 +977,7 @@ class _NativeState extends State<NativePage>
             ? body(s.data!)
             : s.hasError
             ? const Center(child: Text('随包数据读取失败'))
-            : const WikiSkeleton(),
+            : const DelayedLoading(child: WikiSkeleton()),
       ),
     ),
   );

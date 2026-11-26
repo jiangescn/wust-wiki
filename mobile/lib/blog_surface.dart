@@ -83,6 +83,36 @@ class BlogIcon extends StatelessWidget {
   }
 }
 
+class WikiMenuTile extends StatelessWidget {
+  const WikiMenuTile({
+    required this.leading,
+    required this.label,
+    required this.onTap,
+    this.detail,
+    super.key,
+  });
+
+  final Widget leading;
+  final String label;
+  final Widget? detail;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    leading: leading,
+    title: Text(label),
+    trailing: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ?detail,
+        const SizedBox(width: 4),
+        const Icon(Icons.chevron_right_rounded),
+      ],
+    ),
+    onTap: onTap,
+  );
+}
+
 class WikiPageMark extends StatelessWidget {
   const WikiPageMark(
     this.path,

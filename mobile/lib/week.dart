@@ -135,13 +135,8 @@ class _WeekState extends State<WeekPage> with TickerProviderStateMixin {
         resource: 'schedule',
       ),
     );
-    final token = store.token;
     try {
-      final r = await store.api('query', token, resource: 'schedule');
-      if (!mounted || store.token != token) return;
-      if (r['state'] != 'complete')
-        throw FormatException(r['message'] ?? '课表同步失败');
-      await store.saveSchedule(r['result'] as Json);
+      await store.academicResult('schedule');
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(

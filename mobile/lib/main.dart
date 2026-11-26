@@ -7,6 +7,7 @@ import 'school_operation_status.dart';
 import 'dart:math' as math;
 import 'package:flutter/physics.dart';
 import 'wiki_motion.dart';
+import 'wiki_settings.dart';
 import 'wiki_page.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -36,7 +37,7 @@ void main() {
   }
 }
 
-class WikiApp extends StatelessWidget {
+class WikiApp extends StatefulWidget {
   const WikiApp({super.key});
   ThemeData theme(Brightness brightness) {
     final dark = brightness == Brightness.dark;
@@ -143,14 +144,47 @@ class WikiApp extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'WUST Wiki',
-    localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    supportedLocales: const [Locale('zh', 'CN')],
-    debugShowCheckedModeBanner: false,
-    theme: theme(Brightness.light),
-    darkTheme: theme(Brightness.dark),
-    home: const Dashboard(),
+  State<WikiApp> createState() => _WikiAppState();
+}
+
+class _WikiAppState extends State<WikiApp> {
+  final appearance = WikiAppearance();
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(appearance.restore());
+  }
+
+  @override
+  void dispose() {
+    appearance.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: appearance,
+    child: Dashboard(appearance: appearance),
+    builder: (context, home) => MaterialApp(
+      title: 'WUST Wiki',
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      supportedLocales: const [Locale('zh', 'CN')],
+      debugShowCheckedModeBanner: false,
+      theme: widget.theme(Brightness.light),
+      darkTheme: widget.theme(Brightness.dark),
+      themeMode: appearance.theme,
+      themeAnimationDuration: appearance.lowPerformance
+          ? Duration.zero
+          : const Duration(milliseconds: 160),
+      builder: (context, child) => appearance.lowPerformance
+          ? MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: true),
+              child: child!,
+            )
+          : child!,
+      home: home,
+    ),
   );
 }
 
@@ -166,7 +200,8 @@ const examScheduleEntry = (
 );
 
 class Dashboard extends StatefulWidget {
-  const Dashboard({super.key});
+  const Dashboard({this.appearance, super.key});
+  final WikiAppearance? appearance;
   @override
   State<Dashboard> createState() => _DashboardState();
 }
@@ -648,17 +683,6 @@ class _DashboardState extends State<Dashboard>
             icon: const Icon(Icons.manage_accounts_outlined),
             label: const Text('登录设置'),
           ),
-        if (store.loggedIn)
-          BlogPanel(
-            ListTile(
-              leading: mark(_studentEntry),
-              title: const Text('学籍信息'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => open(_studentEntry),
-            ),
-            padding: EdgeInsets.zero,
-            quiet: true,
-          ),
         const SizedBox(height: 16),
         ArchivePart.staggered(
           3,
@@ -683,7 +707,42 @@ class _DashboardState extends State<Dashboard>
                 ),
         ),
         const SizedBox(height: 16),
-        ContentReveal.grouped(AppUpdateTile(updater)),
+        ContentReveal.grouped(
+          BlogPanel(
+            Column(
+              children: [
+                if (store.loggedIn) ...[
+                  WikiMenuTile(
+                    leading: mark(_studentEntry),
+                    label: '学籍信息',
+                    onTap: () => open(_studentEntry),
+                  ),
+                  const Divider(height: 1, indent: 64, endIndent: 16),
+                ],
+                AppUpdateTile(updater),
+                if (widget.appearance case final appearance?) ...[
+                  const Divider(height: 1, indent: 64, endIndent: 16),
+                  WikiMenuTile(
+                    leading: mark(_settingsEntry),
+                    label: '设置',
+                    onTap: () => Navigator.of(context).push(
+                      WikiRoute(
+                        WikiSettingsPage(
+                          appearance,
+                          mark: mark(_settingsEntry),
+                        ),
+                        WikiMotion.reduced(context),
+                        hasSticker: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            padding: EdgeInsets.zero,
+            quiet: true,
+          ),
+        ),
       ]);
     return Column(
       children: [
@@ -935,4 +994,10 @@ const _studentEntry = (
   label: '学籍信息',
   path: '/study/student',
   icon: Icons.badge_outlined,
+);
+
+const _settingsEntry = (
+  label: '设置',
+  path: '/settings',
+  icon: Icons.settings_outlined,
 );

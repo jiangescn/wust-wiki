@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 final class SchoolPortal implements PlatformView {
     private static final String AUTH_HOST = "auth.wust.edu.cn";
@@ -35,6 +36,19 @@ final class SchoolPortal implements PlatformView {
     }
 
     static SchoolPortal campusService(Context context, Object service) {
+        if (service instanceof Map<?,?> options && options.get("notice") instanceof String url) {
+            Uri uri = Uri.parse(url);
+            String host = uri.getHost();
+            String path = uri.getPath();
+            boolean article = path != null && (path.matches(".*/info/[0-9]+/[0-9]+\\.htm")
+                    || (path.endsWith("/info.jsp")
+                    && "news.NewsContentUrl".equals(uri.getQueryParameter("urltype"))));
+            if (article && host != null && (host.equals("wust.edu.cn") || host.endsWith(".wust.edu.cn"))) {
+                return new SchoolPortal(context, url, host,
+                        Arrays.asList(host, AUTH_HOST, "atrust.wust.edu.cn"),
+                        "通知暂时打不开，可用浏览器打开。");
+            }
+        }
         String key = service instanceof String ? (String) service : "";
         String address = switch (key) {
             case "library" -> "https://libsys.wust.edu.cn/space/reader/readerHome";
@@ -53,6 +67,7 @@ final class SchoolPortal implements PlatformView {
         content = new FrameLayout(context);
         web = new WebView(context);
         loading = new ProgressBar(context);
+        loading.setVisibility(View.INVISIBLE);
         content.addView(web, new FrameLayout.LayoutParams(-1, -1));
         content.addView(loading, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
         WebSettings settings = web.getSettings();
@@ -104,6 +119,11 @@ final class SchoolPortal implements PlatformView {
         if (initial == null || !initialHost.equals(initial.getHost()) || !allowed(initial)) {
             showError(errorText);
         } else {
+            loading.postDelayed(() -> {
+                if (loading.getVisibility() == View.INVISIBLE && loading.isAttachedToWindow()) {
+                    loading.setVisibility(View.VISIBLE);
+                }
+            }, 500);
             web.loadUrl(address);
         }
     }

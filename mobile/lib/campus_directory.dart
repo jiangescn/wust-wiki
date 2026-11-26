@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'academic.dart';
+import 'delayed_loading.dart';
 import 'archive_motion.dart';
 import 'blog_surface.dart';
 import 'wiki_page.dart';
@@ -126,7 +127,9 @@ class _CampusDirectoryState extends State<CampusDirectory> {
                 return Center(
                   child: snapshot.hasError
                       ? const Text('校园目录暂时无法读取')
-                      : const CircularProgressIndicator(),
+                      : const DelayedLoading(
+                          child: CircularProgressIndicator(),
+                        ),
                 );
               }
               final data = snapshot.data!;

@@ -24,6 +24,20 @@ void main() {
       expect(hub.currentProgress, isNull);
     },
   );
+  testWidgets('A quick query never shows its loading state', (tester) async {
+    final api = _Api();
+    await tester.pumpWidget(
+      MaterialApp(home: Scaffold(body: SchoolOperationStatus(api))),
+    );
+    final id = api.begin('正在查询课表', resource: 'schedule');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('正在查询课表'), findsNothing);
+    api.finish(id);
+    await tester.pumpAndSettle();
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
   testWidgets(
     'All services show actual phase, retry count and elapsed waiting time',
     (tester) async {
@@ -32,6 +46,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(home: Scaffold(body: SchoolOperationStatus(api))),
       );
+      expect(find.text('正在登录统一认证'), findsNothing);
+      await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('正在登录统一认证'), findsOneWidget);
       expect(find.textContaining('已等待'), findsOneWidget);
       api.update(id, '正在验证登录', attempt: 2);

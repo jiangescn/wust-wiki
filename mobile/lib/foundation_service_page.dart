@@ -11,7 +11,9 @@ import 'archive_motion.dart';
 import 'blog_surface.dart';
 import 'campus_service_views.dart';
 import 'countdown.dart';
+import 'delayed_loading.dart';
 import 'exam_schedule.dart';
+import 'foundation/campus_parsers.dart' show isNoticeArticle, isUniversityURL;
 import 'foundation/client.dart';
 import 'foundation/progress.dart';
 import 'major_progress.dart';
@@ -66,6 +68,7 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
   String? _error, _fileError;
   bool _requiresSchoolLogin = false;
   _SchoolService? _schoolLink;
+  Uri? _noticeLogin;
   (String, Json)? _retry;
   bool _busy = false, _confirming = false, _childOpen = false;
   FoundationProgress? _waiting;
@@ -396,6 +399,7 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
       _error = null;
       _requiresSchoolLogin = false;
       _schoolLink = null;
+      _noticeLogin = null;
       _fileError = null;
       _retry = (resource, remembered);
     });
@@ -456,6 +460,10 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
               }.contains(error.code)
           ? _officialService(resource)
           : null;
+      final code = error is AcademicApiException ? error.code : null;
+      final notice = code == 'authentication_required'
+          ? _protectedNotice(resource, options)
+          : null;
       setState(() {
         _requiresSchoolLogin =
             error is AcademicApiException &&
@@ -465,13 +473,14 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
               'password_expired',
               'account_locked',
             }.contains(error.code);
-        final code = error is AcademicApiException ? error.code : null;
         _error = switch (code) {
           'credentials_rejected' => '账号或密码错误，请修改后重新登录',
           'password_expired' => '统一认证密码已过期，请修改后重新登录',
+          _ when notice != null => '此通知需登录后查看',
           _ => link == null ? _text(_redact(message, secrets)) : '此服务需要学校授权',
         };
         _schoolLink = link;
+        _noticeLogin = notice;
       });
     } finally {
       secrets.clear();
@@ -632,7 +641,22 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
     };
   }
 
-  void _openSchoolService(_SchoolService service) {
+  Uri? _protectedNotice(String resource, Json options) {
+    final address = switch (resource) {
+      'notice-detail' => _text(options['url']),
+      'notice-file' => _text(options['sourceURL']),
+      _ => '',
+    };
+    final uri = Uri.tryParse(address);
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        !isUniversityURL(uri) ||
+        !isNoticeArticle(uri))
+      return null;
+    return uri;
+  }
+
+  void _openSchoolPortal(Object entry, String address) {
     Navigator.of(context).push(
       WikiRoute(
         Scaffold(
@@ -641,7 +665,7 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
             actions: [
               IconButton(
                 tooltip: '用系统浏览器打开',
-                onPressed: () => _openSchoolInBrowser(service.url),
+                onPressed: () => _openSchoolInBrowser(address),
                 icon: const Icon(Icons.open_in_browser),
               ),
             ],
@@ -650,7 +674,7 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
             top: false,
             child: AndroidView(
               viewType: 'wiki/school-service',
-              creationParams: service.key,
+              creationParams: entry,
               creationParamsCodec: const StandardMessageCodec(),
             ),
           ),
@@ -1167,6 +1191,7 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
     final notices = _resource == 'notices';
     final noticePage = _map(result?['page']);
     final schoolLink = _schoolLink;
+    final noticeLogin = _noticeLogin;
     final currentPage = noticePage['currentPage'];
     final totalPages = noticePage['totalPages'];
     const paging = {'上一页', '下一页'};
@@ -1298,11 +1323,22 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
                           },
                     child: const Text('学校统一认证'),
                   ),
-                if (schoolLink != null)
+                if (noticeLogin != null)
                   FilledButton.icon(
                     onPressed: _locked
                         ? null
-                        : () => _openSchoolService(schoolLink),
+                        : () => _openSchoolPortal({
+                            'notice': noticeLogin.toString(),
+                          }, noticeLogin.toString()),
+                    icon: const Icon(Icons.login_rounded),
+                    label: const Text('登录查看原文'),
+                  )
+                else if (schoolLink != null)
+                  FilledButton.icon(
+                    onPressed: _locked
+                        ? null
+                        : () =>
+                              _openSchoolPortal(schoolLink.key, schoolLink.url),
                     icon: const Icon(Icons.login_rounded),
                     label: Text(schoolLink.button),
                   )
@@ -1453,7 +1489,8 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
                   ),
                 ]),
             ],
-            if (_fileBusy != null) const LinearProgressIndicator(),
+            if (_fileBusy != null)
+              const DelayedLoading(child: LinearProgressIndicator()),
             if (_fileError != null) _panel([Text(_fileError!)]),
           ],
         ),

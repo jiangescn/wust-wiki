@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'delayed_loading.dart';
 import 'foundation/client.dart';
 import 'foundation/progress.dart';
 import 'wiki_motion.dart';
@@ -40,10 +41,14 @@ class SchoolOperationStatus extends StatelessWidget {
           curve: WikiMotion.ease,
           child: progress == null
               ? const SizedBox(width: double.infinity, height: 0)
-              : _RunningStatus(
-                  progress,
-                  cancelLabel: cancelLabel,
-                  onCancel: onCancel,
+              : DelayedLoading(
+                  key: ValueKey(fallback?.startedAt ?? progress.startedAt),
+                  startedAt: fallback?.startedAt ?? progress.startedAt,
+                  child: _RunningStatus(
+                    progress,
+                    cancelLabel: cancelLabel,
+                    onCancel: onCancel,
+                  ),
                 ),
         );
       },

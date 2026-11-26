@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'blog_surface.dart';
+import 'delayed_loading.dart';
 import 'update_transport.dart';
 import 'wiki_motion.dart';
 
@@ -357,31 +358,29 @@ class AppUpdateTile extends StatelessWidget {
     if (updater.release == null && updater.phase != UpdatePhase.checking) {
       unawaited(updater.check());
     }
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => _AppUpdateSheet(updater),
-    );
+    showWikiSheet<void>(context, (_) => _AppUpdateSheet(updater));
   }
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: updater,
-    builder: (context, _) => BlogPanel(
-      ListTile(
-        leading: const BlogIcon(Icons.system_update_outlined, hue: 220),
-        title: const Text('检查更新'),
-        subtitle: switch ((updater.release, updater.installedName)) {
-          (final release?, _) => Text('发现新版本 ${release.name}'),
-          (_, final name?) => Text('当前版本 ${name}'),
-          _ => null,
-        },
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => open(context, updater),
-      ),
-      padding: EdgeInsets.zero,
-      quiet: true,
+    builder: (context, _) => WikiMenuTile(
+      leading: const BlogIcon(Icons.system_update_outlined),
+      label: '检查更新',
+      detail: switch ((updater.release, updater.installedName)) {
+        (final release?, _) => Text(
+          '新版 ${release.name}',
+          style: TextStyle(color: blogTint(context, 220)),
+        ),
+        (_, final name?) => Text(
+          name,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        _ => null,
+      },
+      onTap: () => open(context, updater),
     ),
   );
 }
@@ -399,7 +398,7 @@ class _AppUpdateSheet extends StatelessWidget {
       final release = updater.release;
       final theme = Theme.of(context);
       final title = switch (phase) {
-        UpdatePhase.checking => '正在检查更新',
+        UpdatePhase.checking => '检查更新',
         UpdatePhase.current => '已是最新版本',
         UpdatePhase.checkFailed => '检查失败',
         UpdatePhase.unsupported => '暂无适配当前设备的新版本',
@@ -408,7 +407,6 @@ class _AppUpdateSheet extends StatelessWidget {
       };
       final status = switch (phase) {
         UpdatePhase.downloading => '正在下载',
-        UpdatePhase.verifying => '正在校验安装包',
         UpdatePhase.ready => '下载完成',
         UpdatePhase.installing => '正在打开安装程序',
         UpdatePhase.permission => '允许 Wiki 安装应用后即可继续',
@@ -460,7 +458,20 @@ class _AppUpdateSheet extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text('当前版本 ${name}'),
               ],
-              if (status != null || phase == UpdatePhase.checking) ...[
+              if (phase == UpdatePhase.checking ||
+                  phase == UpdatePhase.verifying)
+                DelayedLoading(
+                  key: ValueKey(phase),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: LinearProgressIndicator(
+                      semanticsLabel: phase == UpdatePhase.checking
+                          ? '正在检查更新'
+                          : '正在校验安装包',
+                    ),
+                  ),
+                ),
+              if (status != null) ...[
                 const SizedBox(height: 16),
                 AnimatedSwitcher(
                   duration: WikiMotion.reduced(context)
@@ -470,7 +481,7 @@ class _AppUpdateSheet extends StatelessWidget {
                     key: ValueKey(phase),
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (status != null) Text(status, semanticsLabel: status),
+                      Text(status, semanticsLabel: status),
                       if (phase == UpdatePhase.downloading &&
                           release != null) ...[
                         const SizedBox(height: 10),
@@ -482,12 +493,6 @@ class _AppUpdateSheet extends StatelessWidget {
                           semanticsLabel: '下载进度',
                         ),
                       ],
-                      if (phase == UpdatePhase.checking ||
-                          phase == UpdatePhase.verifying)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: LinearProgressIndicator(),
-                        ),
                     ],
                   ),
                 ),

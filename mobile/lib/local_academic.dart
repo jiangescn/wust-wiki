@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'school_operation_status.dart';
 import 'package:flutter/material.dart';
 import 'academic.dart';
@@ -47,11 +49,16 @@ class _LocalLoginState extends State<LocalAcademicLogin> {
     try {
       if (restore) {
         await widget.store.api('inspect', 'local');
+        if (widget.store.schedule == null ||
+            widget.store.gradeCourses == null) {
+          unawaited(widget.store.loadAcademicOverview());
+        }
       } else {
         await widget.store.loginLocal(account.text.trim(), password.text);
       }
       password.clear();
       if (!mounted) return;
+      busy = false;
       final messenger = ScaffoldMessenger.of(context);
       if (widget.onClose != null) {
         widget.onClose!();

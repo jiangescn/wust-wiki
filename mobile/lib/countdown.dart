@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'academic.dart' show AcademicStore, platform;
 import 'archive_motion.dart';
 import 'blog_surface.dart';
+import 'delayed_loading.dart';
 import 'exam_schedule.dart';
 
 class _Exam {
@@ -179,7 +180,7 @@ class _CountdownPageState extends State<CountdownPage> {
                         onPressed: _load,
                         child: const Text('重新读取倒计时'),
                       )
-                    : const CircularProgressIndicator(),
+                    : const DelayedLoading(child: CircularProgressIndicator()),
               )
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),

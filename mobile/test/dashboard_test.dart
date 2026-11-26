@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wust_wiki/main.dart';
 import 'package:wust_wiki/academic.dart';
 import 'package:wust_wiki/grade_selection.dart';
@@ -23,9 +24,11 @@ Future<void> openMoreTools(WidgetTester tester) async {
 
 class ConfirmedSchool extends AcademicStore {
   final calls = <String>[];
+  final resources = <String>[];
   @override
   Future<Json> api(String action, String bearer, {String? resource}) async {
     calls.add(action);
+    if (resource != null) resources.add(resource);
     final until = DateTime.now().millisecondsSinceEpoch + 60000;
     return switch (action) {
       'start' => {
@@ -40,7 +43,13 @@ class ConfirmedSchool extends AcademicStore {
       'poll' => {'state': 'authenticated', 'expiresAt': until},
       'query' => {
         'state': 'complete',
-        'result': {'provider': 'wust', 'lessons': []},
+        'result': resource == 'grades'
+            ? {
+                'courses': [
+                  {'name': '已同步成绩', 'score': 96},
+                ],
+              }
+            : {'provider': 'wust', 'lessons': []},
       },
       _ => {'state': 'idle'},
     };
@@ -124,6 +133,59 @@ void main() {
     );
   });
   tearDown(() => messenger.setMockMethodCallHandler(platform, null));
+  testWidgets('设置可手动切换主题并保存低性能模式', (t) async {
+    Map<String, dynamic> saved = {};
+    messenger.setMockMethodCallHandler(platform, (call) async {
+      if (call.method == 'saveAppearance') {
+        saved = Map<String, dynamic>.from(call.arguments as Map);
+      }
+      return switch (call.method) {
+        'loadAppearance' => saved,
+        'restore' => <String, dynamic>{},
+        _ => null,
+      };
+    });
+    await t.pumpWidget(const WikiApp());
+    await t.pumpAndSettle();
+    await t.tap(find.text('个人').last);
+    await t.pumpAndSettle();
+    await t.tap(find.text('设置'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('跟随系统'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('深色').last);
+    await t.pumpAndSettle();
+    await t.tap(find.text('低性能模式'));
+    await t.pumpAndSettle();
+    final setting = t.element(find.text('低性能模式'));
+    expect(Theme.of(setting).brightness, Brightness.dark);
+    expect(MediaQuery.disableAnimationsOf(setting), isTrue);
+    expect(saved, {'theme': 'dark', 'lowPerformance': true});
+
+    await t.pumpWidget(const SizedBox.shrink());
+    await t.pumpWidget(const WikiApp());
+    await t.pumpAndSettle();
+    final dock = t.element(find.text('个人').last);
+    expect(Theme.of(dock).brightness, Brightness.dark);
+    expect(MediaQuery.disableAnimationsOf(dock), isTrue);
+  });
+
+  testWidgets('武科大导航沿用网页版分组并为条目绘制独立的图标', (t) async {
+    final store = AcademicStore();
+    await t.pumpWidget(
+      MaterialApp(
+        home: NativePage(store, '/navigation', '武科大导航', selectTab: (_) {}),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('教务学习'), findsOneWidget);
+    expect(find.byType(SvgPicture), findsWidgets);
+    await t.enterText(find.byType(TextField), '图书馆');
+    await t.pumpAndSettle();
+    expect(find.widgetWithText(ListTile, '图书馆'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('首页、七天课表、Wiki 分栏', (t) async {
     await t.pumpWidget(const WikiApp());
     await t.pumpAndSettle();
@@ -993,7 +1055,10 @@ void main() {
     expect(school.calls, ['start']);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
-    expect(school.calls, ['start', 'poll']);
+    expect(school.calls, ['start', 'poll', 'query', 'query']);
+    expect(school.resources, ['schedule', 'grades']);
+    expect(school.schedule?['lessons'], isEmpty);
+    expect(school.gradeCourses?.single['name'], '已同步成绩');
     expect(school.loggedIn, isTrue);
     await tester.pumpWidget(
       MaterialApp(home: Scaffold(body: WeekPage(school))),
@@ -1001,7 +1066,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('同步课表'));
     await tester.pumpAndSettle();
-    expect(school.calls, ['start', 'poll', 'query']);
+    expect(school.resources, ['schedule', 'grades', 'schedule']);
     expect(school.schedule?['lessons'], isEmpty);
   });
   test('重修同学期优先，无法判断的记录交由用户选择', () {

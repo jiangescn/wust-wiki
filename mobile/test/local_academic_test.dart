@@ -34,6 +34,11 @@ void main() {
         'state': query ? 'complete' : 'authenticated',
         if (query)
           'result': {
+            if (input['resource'] == 'schedule') 'lessons': <Json>[],
+            if (input['resource'] == 'grades')
+              'courses': <Json>[
+                {'name': '合成课程', 'score': 93},
+              ],
             'rows': [
               {
                 'title': '合成考试',
@@ -162,6 +167,17 @@ void main() {
     expect((login.arguments as Map)['password'], 'synthetic-password');
     expect(tester.widget<TextField>(fields.at(1)).controller!.text, isEmpty);
     expect(closed, isTrue);
+    expect(
+      calls
+          .where((call) => call.method == 'academic')
+          .map((call) => (call.arguments as Map)['resource'])
+          .whereType<String>(),
+      ['schedule', 'grades'],
+    );
+    expect(store.schedule, isNotNull);
+    expect(store.gradeCourses?.single['name'], '合成课程');
+    await store.logout();
+    expect(store.gradeCourses, isNull);
   });
 
   testWidgets('密码错误后清空密码并在输入框提示修改，不发起重试', (tester) async {

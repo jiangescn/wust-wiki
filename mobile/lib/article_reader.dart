@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'delayed_loading.dart';
 import 'wiki_motion.dart';
 
 class ArticleReader extends StatefulWidget {
@@ -107,7 +108,7 @@ class _ReaderState extends State<ArticleReader> {
           ),
         )
       else if (!ready)
-        const WikiSkeleton(article: true),
+        const DelayedLoading(child: WikiSkeleton(article: true)),
     ],
   );
 }
