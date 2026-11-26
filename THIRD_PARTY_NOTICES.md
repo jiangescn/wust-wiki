@@ -73,6 +73,12 @@ Coder 已由自行实现替换为原版迁移：`vendor/xupt-wiki/` 保存上游
 
 通过 Nuxt layer 使用其文档布局、内容导航和搜索。`patches/docus@5.13.0.patch` 是类型兼容补丁，许可证见 `licenses/docus-MIT.txt`。
 
+## 安卓教务与校园服务：WUSTFoundation
+
+来源：https://github.com/xiaoka520/WUSTFoundation ，固定提交 `f421a1e3d4da364cdf773b1bd54433e2630dd10b`。
+移动端按其认证协议、教务解析和校园服务行为移植为 Dart；Android 图像、OCR、加密及 WebView 为必要适配。0.6.0 不再打包 Swift 执行程序与运行库。原始 Swift 源码可查阅 [WUSTFoundation 上游固定提交](https://github.com/xiaoka520/WUSTFoundation/tree/f421a1e3d4da364cdf773b1bd54433e2630dd10b/Sources)，Dart 移植源码位于 `mobile/lib/foundation/`。
+该模块采用 AGPL-3.0，许可全文见 `mobile/licenses/AGPL-3.0.txt`；历史 Swift 快照及现有 ML Kit 等来源和许可见 `mobile/licenses/WUSTFoundation-NOTICE.md`。完整对应源码与本地 APK 一并交付。此新增模块的许可不更改网站文章和其他第三方素材各自的许可。
+
 ## 周边去处地图
 
 地图渲染直接使用 [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js) 6.11.2（BSD-3-Clause）；完整包内许可及所含代码声明保存在 [`licenses/maplibre-gl-LICENSE.txt`](./licenses/maplibre-gl-LICENSE.txt)。未复制或改写 SDK 源码。
