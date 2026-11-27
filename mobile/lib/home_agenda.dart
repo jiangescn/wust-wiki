@@ -4,6 +4,7 @@ import 'academic.dart' show Lesson;
 import 'countdown.dart';
 import 'daily_timeline.dart';
 import 'exam_schedule.dart';
+import 'personal_schedule.dart';
 
 class HomeExamRow extends StatelessWidget {
   const HomeExamRow({required this.exam, required this.now});
@@ -156,6 +157,8 @@ class TodayPeriodRow extends StatelessWidget {
                   [
                     if (hasTime) sections,
                     if (lesson.place.isNotEmpty) lesson.place,
+                    if (lesson case final PersonalLesson course)
+                      course.sourceLabel,
                   ].join(' · '),
                   style: TextStyle(color: colors.onSurfaceVariant),
                 ),

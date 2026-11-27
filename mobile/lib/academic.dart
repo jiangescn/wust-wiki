@@ -7,6 +7,7 @@ import 'grade_results.dart';
 import 'grade_selection.dart';
 import 'exam_schedule.dart';
 import 'local_academic.dart';
+import 'personal_schedule.dart';
 import 'foundation/client.dart';
 import 'foundation/progress.dart';
 import 'foundation/flutter_platform.dart';
@@ -16,6 +17,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:crypto/crypto.dart';
 
 typedef Json = Map<String, dynamic>;
 const platform = MethodChannel('wiki/native');
@@ -72,6 +74,19 @@ List<int>? rangeList(String text, int limit) {
     }
   }
   return values.toList()..sort();
+}
+
+String formatNumberRanges(List<int> values) {
+  final ranges = <String>[];
+  for (var index = 0; index < values.length;) {
+    final first = values[index++];
+    while (index < values.length && values[index] == values[index - 1] + 1) {
+      index++;
+    }
+    final last = values[index - 1];
+    ranges.add(first == last ? '$first' : '$first–$last');
+  }
+  return ranges.join('、');
 }
 
 class Lesson {
@@ -229,11 +244,111 @@ class AcademicStore extends ChangeNotifier {
   int _academicAccount = 0;
   bool initialized = false;
   List<Lesson> lessons = [];
+  List<PersonalCourse> _personalCourses = [];
+  Map<String, DateTime> _termMondays = {};
+  String? _lastScheduleTerm;
+  String _courseOwner = '';
+  bool _writingPersonalCourses = false;
+
+  String get courseOwner => _courseOwner;
+
+  String get courseTerm {
+    if (_lastScheduleTerm case final term?) return term;
+    final today = chinaDay();
+    final startYear = today.month >= 8 ? today.year : today.year - 1;
+    final semester = today.month >= 8 || today.month == 1 ? 1 : 2;
+    return '$startYear-${startYear + 1}-$semester';
+  }
+
+  DateTime? get courseTermMonday =>
+      _termMondays[courseTerm] ??
+      (courseTerm == '2026-2027-1' ? autumnStart : null);
+
+  DateTime? courseWeekStart(int week) =>
+      courseTermMonday?.add(Duration(days: (week - 1) * 7));
+
+  int? courseWeekOn(DateTime date) {
+    final monday = courseTermMonday;
+    return monday == null ? null : weekAt(monday, date);
+  }
+
+  List<Lesson> get displayedLessons => [
+    ...lessons,
+    for (final course in _personalCourses)
+      if (course.term == courseTerm &&
+          (course.owner.isEmpty || course.owner == _courseOwner))
+        ...course.lessons(courseTermMonday),
+  ];
+
+  Future<void> _restorePersonalCourses() async {
+    try {
+      final saved = await platform.invokeMethod<String>('loadPersonalSchedule');
+      if (saved == null) return;
+      final data = jsonDecode(saved);
+      if (data is! Json) return;
+      if (data['courses'] case final List courses) {
+        _personalCourses = courses
+            .whereType<Json>()
+            .map(PersonalCourse.read)
+            .nonNulls
+            .toList();
+      }
+      if (data['mondays'] case final Json mondays) {
+        for (final entry in mondays.entries) {
+          final day = DateTime.tryParse(entry.value.toString());
+          if (day != null && day.weekday == DateTime.monday) {
+            _termMondays[entry.key] = calendarDate(day);
+          }
+        }
+      }
+    } on Exception {
+      return;
+    }
+  }
+
+  String _ownerKey(String username) =>
+      sha256.convert(utf8.encode(username)).toString();
+
+  Future<void> savePersonalCourse(
+    PersonalCourse course, {
+    required DateTime monday,
+  }) async {
+    if (_writingPersonalCourses ||
+        course.term != courseTerm ||
+        (course.owner.isNotEmpty && course.owner != _courseOwner)) {
+      throw const FormatException('课表已切换，请重新打开课程。');
+    }
+    final next = [..._personalCourses];
+    final existing = next.indexWhere((item) => item.id == course.id);
+    if (existing >= 0) next.removeAt(existing);
+    if (course.times.isNotEmpty) {
+      next.insert(existing < 0 ? next.length : existing, course);
+    }
+    final mondays = {..._termMondays, course.term: monday};
+    _writingPersonalCourses = true;
+    try {
+      await platform.invokeMethod<void>(
+        'savePersonalSchedule',
+        jsonEncode({
+          'version': 1,
+          'courses': next.map((item) => item.toJson()).toList(),
+          'mondays': mondays.map((term, day) => MapEntry(term, dateLabel(day))),
+        }),
+      );
+      _personalCourses = next;
+      _termMondays = mondays;
+      notifyListeners();
+    } finally {
+      _writingPersonalCourses = false;
+    }
+  }
+
   bool get loggedIn => token.isNotEmpty;
   String _restoredToken = '';
   Future<void>? _initializing;
   Future<void> init() => _initializing ??= _restore();
   Future<void> _restore() async {
+    final personal = _restorePersonalCourses();
     try {
       final raw = await platform.invokeMapMethod<String, dynamic>('restore');
       if (raw != null) {
@@ -241,6 +356,16 @@ class AcademicStore extends ChangeNotifier {
         token = raw['token'] ?? '';
         if (token == 'local' && raw['localSaved'] != true) token = '';
         if (localAvailable && raw['localSaved'] == true) token = 'local';
+        final client = foundation;
+        if (token == 'local' && client is DartFoundationClient) {
+          try {
+            final account = await client.platform.load('active-account');
+            if (account != null && account.isNotEmpty)
+              _courseOwner = _ownerKey(account);
+          } on Exception {
+            // Personal schedules remain available without an account.
+          }
+        }
         _restoredToken = token;
         expires = raw['expires'] ?? 0;
         if (raw['campus'] == 'qingshan' || raw['campus'] == 'huangjiahu') {
@@ -278,6 +403,7 @@ class AcademicStore extends ChangeNotifier {
     } on Exception {
       /* No usable previous cache. */
     }
+    await personal;
     initialized = true;
     notifyListeners();
   }
@@ -288,6 +414,13 @@ class AcademicStore extends ChangeNotifier {
         .map(Lesson.new)
         .toList();
     schedule = data;
+    final year = data['schoolYear']?.toString() ?? '';
+    final semester = data['semester']?.toString();
+    if (RegExp(r'^\d{4}-\d{4}$').hasMatch(year)) {
+      _lastScheduleTerm = '$year-${semester == '2' ? '2' : '1'}';
+    } else if (knownTerm(data)) {
+      _lastScheduleTerm = '2026-2027-1';
+    }
     savedUntil = until;
   }
 
@@ -367,11 +500,13 @@ class AcademicStore extends ChangeNotifier {
       _academicRequests.clear();
       gradeCourses = null;
       schedule = null;
+      _lastScheduleTerm = null;
       lessons = [];
       savedUntil = 0;
     }
     _restoredToken = '';
     token = value;
+    if (value != 'local') _courseOwner = '';
     if (value != 'local') {
       _examAccount++;
       examSchedule = null;
@@ -403,6 +538,7 @@ class AcademicStore extends ChangeNotifier {
       'username': username,
       'password': password,
     });
+    _courseOwner = _ownerKey(username.trim());
     await remember('local', 0);
     unawaited(loadAcademicOverview());
   }

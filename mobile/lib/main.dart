@@ -149,11 +149,12 @@ class WikiApp extends StatefulWidget {
 
 class _WikiAppState extends State<WikiApp> {
   final appearance = WikiAppearance();
+  late final Future<void> _restoredAppearance;
 
   @override
   void initState() {
     super.initState();
-    unawaited(appearance.restore());
+    _restoredAppearance = appearance.restore();
   }
 
   @override
@@ -165,7 +166,20 @@ class _WikiAppState extends State<WikiApp> {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: appearance,
-    child: Dashboard(appearance: appearance),
+    child: FutureBuilder<void>(
+      future: _restoredAppearance,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold();
+        }
+        return Dashboard(
+          appearance: appearance,
+          initialTab: appearance.openScheduleOnLaunch
+              ? WikiTab.schedule
+              : WikiTab.home,
+        );
+      },
+    ),
     builder: (context, home) => MaterialApp(
       title: 'WUST Wiki',
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -200,8 +214,9 @@ const examScheduleEntry = (
 );
 
 class Dashboard extends StatefulWidget {
-  const Dashboard({this.appearance, super.key});
+  const Dashboard({this.appearance, this.initialTab = WikiTab.home, super.key});
   final WikiAppearance? appearance;
+  final WikiTab initialTab;
   @override
   State<Dashboard> createState() => _DashboardState();
 }
@@ -213,10 +228,13 @@ class _DashboardState extends State<Dashboard>
     duration: WikiMotion.enter,
     value: 1,
   );
-  late final dock = AnimationController.unbounded(vsync: this);
+  late final dock = AnimationController.unbounded(
+    value: widget.initialTab.index.toDouble(),
+    vsync: this,
+  );
   static const tabs = WikiTab.values;
-  final visitedTabs = {WikiTab.home};
-  WikiTab tab = WikiTab.home, previous = WikiTab.home;
+  late final visitedTabs = {widget.initialTab};
+  late WikiTab tab = widget.initialTab, previous = widget.initialTab;
   bool draggingDock = false;
 
   @override
@@ -364,9 +382,10 @@ class _DashboardState extends State<Dashboard>
   );
   Widget scheduleCard() {
     final now = DateTime.now().toUtc().add(const Duration(hours: 8));
-    final week = teachingWeek(store.schedule ?? {}, chinaDay());
+    final week = store.courseWeekOn(chinaDay());
+    final lessons = store.displayedLessons;
     final todaysLessons =
-        store.lessons
+        lessons
             .where(
               (l) =>
                   l.placed && l.day == now.weekday && l.weeks!.contains(week),
@@ -387,8 +406,8 @@ class _DashboardState extends State<Dashboard>
       slots.add((lesson: lesson, start: start, end: end));
     }
     slots.sort((a, b) => a.start.compareTo(b.start));
-    final courseNames =
-        store.lessons.map((lesson) => lesson.name).toSet().toList()..sort();
+    final courseNames = lessons.map((lesson) => lesson.name).toSet().toList()
+      ..sort();
     final courseAccents = {
       for (final (i, name) in courseNames.indexed)
         name: blogTint(
@@ -399,13 +418,13 @@ class _DashboardState extends State<Dashboard>
     final today = {
       'status': !store.initialized
           ? 'loading'
-          : store.schedule == null
+          : store.schedule == null && lessons.isEmpty
           ? 'missing'
           : week == null
           ? 'unknown'
           : 'ready',
       'week': week,
-      'uncertain': store.lessons.any(
+      'uncertain': lessons.any(
         (l) => !l.placed && (l.day == 0 || l.day == now.weekday),
       ),
     };

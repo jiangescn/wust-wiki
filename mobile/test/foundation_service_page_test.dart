@@ -70,6 +70,133 @@ Future<void> _tap(WidgetTester tester, String label) async {
 }
 
 void main() {
+  testWidgets('记住洗衣点后也能打开我的订单，订单页只展示可读信息', (tester) async {
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(platform, (_) async => null);
+    addTearDown(() => messenger.setMockMethodCallHandler(platform, null));
+    final store = _Store()
+      ..initialized = true
+      ..laundryShop = (id: 'shop-fixture', name: '南楼洗衣点', filter: '')
+      ..respond = (resource, _) async {
+        if (resource == 'laundry-devices') {
+          return {
+            'rows': <Json>[],
+            'title': '南楼洗衣点',
+            'availableDevices': <Json>[],
+          };
+        }
+        return {
+          'title': '我的洗衣',
+          'rows': [
+            {
+              'title': '南楼 2-1',
+              'fields': [
+                {'name': '门店', 'value': '南楼洗衣点'},
+                {'name': '程序', 'value': '标准洗'},
+                {'name': '状态', 'value': '进行中'},
+                {'name': 'observedAt', 'value': 'internal-fixture-value'},
+              ],
+              'action': _action('查看订单', 'laundry-order', {
+                'orderId': 'order-fixture',
+              }),
+            },
+          ],
+        };
+      };
+    await _mount(tester, store, resource: 'laundry-shops');
+    expect(store.calls.single.$1, 'laundry-devices');
+    expect(find.text('我的洗衣'), findsOneWidget);
+    await _tap(tester, '我的洗衣');
+    expect(store.calls.last.$1, 'laundry-orders');
+    expect(find.text('南楼 2-1'), findsOneWidget);
+    expect(find.text('进行中'), findsWidgets);
+    expect(find.textContaining('internal-fixture-value'), findsNothing);
+    await _tap(tester, '南楼 2-1');
+    expect(store.calls.last.$1, 'laundry-order');
+    expect(store.calls.last.$2, {'orderId': 'order-fixture'});
+    expect(find.text('洗衣订单详情'), findsOneWidget);
+    expect(find.textContaining('internal-fixture-value'), findsNothing);
+  });
+
+  testWidgets('订单详情只显示订单信息，不显示内部字段', (tester) async {
+    final store = _Store()
+      ..respond = (_, _) async => {
+        'title': '洗衣订单详情',
+        'rows': [
+          {
+            'title': '合成设备',
+            'fields': [
+              {'name': '门店', 'value': '南楼洗衣点'},
+              {'name': 'observedAt', 'value': 'internal-fixture-value'},
+            ],
+          },
+        ],
+      };
+    await _mount(
+      tester,
+      store,
+      resource: 'laundry-order',
+      options: {'orderId': 'order-fixture'},
+    );
+    expect(find.textContaining('合成设备'), findsOneWidget);
+    expect(find.textContaining('internal-fixture-value'), findsNothing);
+    await tester.tap(find.byTooltip('刷新'));
+    await tester.pumpAndSettle();
+    expect(store.calls.last.$1, 'laundry-order');
+    expect(store.calls.last.$2, {'orderId': 'order-fixture', 'refresh': true});
+  });
+
+  testWidgets('胖乖登录失效时展示登录表单，登完直接查询洗衣订单', (tester) async {
+    var signedIn = false;
+    final store = _Store()
+      ..respond = (resource, options) async {
+        if (resource == 'laundry') {
+          return {
+            'controls': [_text('phone', ''), _text('smsCode', '')],
+          };
+        }
+        if (resource == 'laundry-login') {
+          expect(options, {
+            'action': 'login',
+            'phone': '10000000000',
+            'smsCode': '123456',
+          });
+          signedIn = true;
+          return {'rows': <Json>[]};
+        }
+        if (!signedIn) {
+          throw const AcademicApiException(
+            'internal fixture error',
+            401,
+            code: 'laundry_login_required',
+          );
+        }
+        return {'rows': <Json>[]};
+      };
+    await _mount(tester, store, resource: 'laundry-orders');
+    expect(find.text('胖乖登录'), findsOneWidget);
+    expect(find.textContaining('internal fixture error'), findsNothing);
+    await tester.enterText(
+      find.byKey(const ValueKey('foundation-input-phone')),
+      '10000000000',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('foundation-input-smsCode')),
+      '123456',
+    );
+    await _tap(tester, '登录');
+    expect(store.calls.map((call) => call.$1), [
+      'laundry-orders',
+      'laundry',
+      'laundry-login',
+      'laundry-orders',
+    ]);
+    expect(store.calls.last.$2, isEmpty);
+    expect(find.text('我的洗衣'), findsOneWidget);
+    expect(find.text('暂无洗衣订单'), findsOneWidget);
+  });
+
   testWidgets('受限通知使用原文登录，公共列表不要求教务账号', (tester) async {
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
@@ -791,7 +918,7 @@ void main() {
       expect(store.calls.last.$2['smsCode'], '654321');
       expect(find.textContaining('secret-fixture'), findsNothing);
       expect(find.textContaining('654321'), findsNothing);
-      expect(find.text('失败 •••• ••••'), findsOneWidget);
+      expect(find.text('登录失败，请核对手机号和验证码'), findsOneWidget);
       for (final key in ['smsCode', 'credential']) {
         expect(
           tester

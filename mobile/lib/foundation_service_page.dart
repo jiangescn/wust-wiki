@@ -82,6 +82,11 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
       _fileBusy != null ||
       (_laundryHome && !widget.store.initialized && widget.options.isEmpty);
   bool get _laundryHome => widget.resource == 'laundry-shops';
+  bool get _laundryAccountRoute =>
+      const {'laundry-orders', 'laundry-order'}.contains(widget.resource);
+  bool get _showLaundryLogin =>
+      _laundryAccountRoute &&
+      const {'laundry', 'laundry-sms', 'laundry-login'}.contains(_resource);
 
   @override
   void initState() {
@@ -362,7 +367,6 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('发送登录短信？'),
-          content: const Text('确认后将向填写的手机号申请一条胖乖登录短信。'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -387,11 +391,17 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
             entry.value is String)
           entry.value as String,
     ];
+    (String, Json)? laundryNext;
     _clearSecrets();
     setState(() {
       _busy = true;
       _waiting = FoundationProgress(
-        message: '正在查询${schoolResourceLabel(resource)}',
+        message: switch (resource) {
+          'laundry-sms' => '正在发送验证码',
+          'laundry-login' when options['action'] == 'login' => '正在登录胖乖',
+          'laundry-orders' || 'laundry-order' => '正在查询洗衣订单',
+          _ => '正在查询${schoolResourceLabel(resource)}',
+        },
         resource: resource,
         startedAt: DateTime.now(),
         activeCount: 1,
@@ -441,11 +451,23 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
         _title = switch (resource) {
           'laundry-devices' when safe['availableDevices'] is List => '空闲洗衣机',
           'laundry-shops' when safe['shops'] is List => '洗衣机',
+          'laundry-orders' => '我的洗衣',
+          'laundry-order' => '洗衣订单详情',
+          'laundry' ||
+          'laundry-sms' ||
+          'laundry-login' when _laundryAccountRoute => '胖乖登录',
           _ => _text(safe['title']).isEmpty ? _title : _text(safe['title']),
         };
         _retry = null;
         _revision++;
       });
+      if (_laundryAccountRoute && resource == 'laundry-login') {
+        laundryNext = switch (options['action']) {
+          'login' => ('laundry-orders', <String, dynamic>{}),
+          'clear' => ('laundry', <String, dynamic>{}),
+          _ => null,
+        };
+      }
     } catch (error) {
       if (!mounted || run != _run) return;
       final message = error is FormatException
@@ -461,6 +483,15 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
           ? _officialService(resource)
           : null;
       final code = error is AcademicApiException ? error.code : null;
+      if (_laundryAccountRoute &&
+          const {'laundry-order', 'laundry-orders'}.contains(resource) &&
+          const {
+            'laundry_login_required',
+            'invalid_credential',
+          }.contains(code)) {
+        laundryNext = ('laundry', <String, dynamic>{});
+        setState(() => _result = null);
+      }
       final notice = code == 'authentication_required'
           ? _protectedNotice(resource, options)
           : null;
@@ -474,6 +505,19 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
               'account_locked',
             }.contains(error.code);
         _error = switch (code) {
+          _ when laundryNext != null => null,
+          'invalid_phone_number' when resource.startsWith('laundry') =>
+            '请输入正确的手机号',
+          'invalid_sms_code' when resource.startsWith('laundry') => '请输入短信验证码',
+          'captcha_required' when resource.startsWith('laundry') =>
+            '请在胖乖完成验证后重试',
+          'laundry_rejected_429' => '操作太频繁，请稍后重试',
+          _ when resource == 'laundry-sms' => '验证码发送失败，请重试',
+          _ when resource == 'laundry-login' && options['action'] == 'login' =>
+            '登录失败，请核对手机号和验证码',
+          _ when resource == 'laundry-orders' || resource == 'laundry-order' =>
+            '订单加载失败',
+          _ when resource.startsWith('laundry') => '洗衣服务暂时无法加载',
           'credentials_rejected' => '账号或密码错误，请修改后重新登录',
           'password_expired' => '统一认证密码已过期，请修改后重新登录',
           _ when notice != null => '此通知需登录后查看',
@@ -489,6 +533,10 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
           _busy = false;
           _waiting = null;
         });
+    }
+    final next = laundryNext;
+    if (mounted && run == _run && next != null) {
+      await _query(next.$1, next.$2);
     }
   }
 
@@ -508,7 +556,10 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
     };
   }
 
-  Future<void> _refresh() => _query(_resource, _withInputs(_options));
+  Future<void> _refresh() => _query(_resource, {
+    ..._withInputs(_options),
+    if (_resource == 'laundry-order') 'refresh': true,
+  });
 
   void _cancel() {
     if (!_busy) return;
@@ -970,7 +1021,8 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
         if (pagination.isNotEmpty) paging(),
       ];
     }
-    if (_resource == 'laundry-shops' && result['shops'] is List) {
+    if (_resource == 'laundry-shops') {
+      if (result['shops'] is! List) return [const Text('洗衣点加载失败')];
       return [
         if (_text(result['shopQueryArea']).isNotEmpty)
           Padding(
@@ -1000,7 +1052,8 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
         if (pagination.isNotEmpty) paging(),
       ];
     }
-    if (_resource == 'laundry-devices' && result['availableDevices'] is List) {
+    if (_resource == 'laundry-devices') {
+      if (result['availableDevices'] is! List) return [const Text('设备加载失败')];
       final shop = widget.store.laundryShop;
       final saved = _laundryHome && shop?.id == _options['shopId']
           ? shop
@@ -1020,10 +1073,94 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
         ),
       ];
     }
+    if (_resource == 'laundry-orders') {
+      final running =
+          _options['running'] == true || _options['running'] == 'true';
+      return [
+        SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment(value: false, label: Text('全部订单')),
+            ButtonSegment(value: true, label: Text('进行中')),
+          ],
+          selected: {running},
+          onSelectionChanged: _locked
+              ? null
+              : (value) => _query('laundry-orders', {
+                  if (value.single) 'running': true,
+                }),
+        ),
+        const SizedBox(height: 12),
+        if (rows.isEmpty) _panel([Text(running ? '暂无进行中的订单' : '暂无洗衣订单')]),
+        for (final row in rows)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: LaundryOrderCard(
+              title: _text(row['title']),
+              fields: _namedFields(row),
+              onOpen: _locked || row['action'] is! Map
+                  ? null
+                  : () => _act(_map(row['action']), row: true, title: '洗衣订单详情'),
+            ),
+          ),
+        if (pagination.isNotEmpty) paging(),
+      ];
+    }
+    if (_resource == 'laundry-order') {
+      final row = rows.firstOrNull;
+      return [
+        if (row == null)
+          _panel([const Text('订单详情加载失败')])
+        else
+          LaundryOrderCard(
+            title: _text(row['title']),
+            fields: _namedFields(row),
+            detail: true,
+          ),
+      ];
+    }
+    if (_showLaundryLogin) {
+      return [
+        _panel([
+          for (final control in _records(result['controls'])) _control(control),
+          if (_resource == 'laundry-sms' &&
+              _error == null &&
+              _text(result['message']).isNotEmpty)
+            const Text('验证码已发送'),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _locked
+                      ? null
+                      : () => _query(
+                          'laundry-sms',
+                          _withInputs({'action': 'send'}),
+                        ),
+                  child: const Text('发送验证码'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _locked
+                      ? null
+                      : () => _query(
+                          'laundry-login',
+                          _withInputs({'action': 'login'}),
+                        ),
+                  child: const Text('登录'),
+                ),
+              ),
+            ],
+          ),
+        ]),
+      ];
+    }
     return null;
   }
 
-  static Map<String, String> _studentFields(Json row) => {
+  static Map<String, String> _namedFields(Json row) => {
     for (final field in _records(row['fields']))
       if (_text(field['value']).isNotEmpty)
         _text(field['name']): _text(field['value']),
@@ -1087,7 +1224,7 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
     if (_resource == 'student') {
       final fields = rows.isEmpty
           ? const <String, String>{}
-          : _studentFields(rows.first);
+          : _namedFields(rows.first);
       return [
         if (fields.isEmpty)
           const ListTile(title: Text('暂无学籍信息'))
@@ -1127,7 +1264,7 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
       ];
     }
     if (_resource == 'credits') {
-      final fields = rows.map(_studentFields).toList();
+      final fields = rows.map(_namedFields).toList();
       return [
         MajorProgress(
           statistics: fields
@@ -1238,19 +1375,34 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
               ),
               icon: const Icon(Icons.timer_outlined),
             ),
-          if (_resource == 'laundry-shops')
+          if (const {'laundry-shops', 'laundry-devices'}.contains(_resource))
             TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+              ),
               onPressed: _locked
                   ? null
-                  : () => _act({'resource': 'laundry', 'label': '我的洗衣'}),
+                  : () => _act({'resource': 'laundry-orders', 'label': '我的洗衣'}),
               child: const Text('我的洗衣'),
             ),
           if (_laundryHome && _resource == 'laundry-devices')
             TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+              ),
               onPressed: _locked
                   ? null
                   : () => _showLaundry('laundry-shops', Map.of(widget.options)),
               child: const Text('更换地点'),
+            ),
+          if (_resource == 'laundry-orders' && result != null && _error == null)
+            PopupMenuButton<String>(
+              tooltip: '胖乖账号',
+              enabled: !_locked,
+              onSelected: (_) => _query('laundry-login', {'action': 'clear'}),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'logout', child: Text('退出胖乖账号')),
+              ],
             ),
           if (libraryMenu.isNotEmpty)
             PopupMenuButton<Json>(
@@ -1342,7 +1494,7 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
                     icon: const Icon(Icons.login_rounded),
                     label: Text(schoolLink.button),
                   )
-                else if (!_requiresSchoolLogin)
+                else if (!_requiresSchoolLogin && !_showLaundryLogin)
                   TextButton(
                     onPressed: _locked
                         ? null
@@ -1381,7 +1533,9 @@ class _FoundationServicePageState extends State<FoundationServicePage> {
                   ],
                 ),
               ]),
-            if (!_busy && _error == null && campusSections != null)
+            if (!_busy &&
+                (_error == null || _showLaundryLogin) &&
+                campusSections != null)
               ...campusSections
             else if (!_busy && _error == null && studentSections != null)
               ContentReveal.sequence(

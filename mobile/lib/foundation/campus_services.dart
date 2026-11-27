@@ -1027,27 +1027,16 @@ class CampusServices {
   Future<Map<String, dynamic>> _laundryHome(
     Map<String, dynamic> options,
   ) async {
-    final saved = await platform.load('laundry');
-    final account = saved == null
-        ? null
-        : CampusLaundryCredential.decode(saved);
+    final hasSavedLogin = await platform.load('laundry') != null;
     return {
-      'title': '胖乖生活',
-      'message': '短信仅在点击“发送登录短信”后申请。附近设备查询无需登录。',
-      'rows': [
-        if (account != null)
-          _row('本机已保存的登录', {
-            '用户 ID': account.userID,
-            '首次验证时间': account.firstVerifiedAt.toIso8601String(),
-            '最近验证时间': account.lastVerifiedAt.toIso8601String(),
-          }),
-      ],
+      'title': '胖乖登录',
+      'rows': <Map<String, dynamic>>[],
       'controls': _loginControls(options),
       'actions': [
         _action('附近门店', 'laundry-shops'),
         _action('发送登录短信', 'laundry-sms', {'action': 'send'}),
         _action('使用验证码登录', 'laundry-login', {'action': 'login'}),
-        if (account != null) ...[
+        if (hasSavedLogin) ...[
           _action('验证已保存登录', 'laundry-login', {'action': 'restore'}),
           _action('运行中洗衣订单', 'laundry-orders', {'running': true}),
           _action('全部订单', 'laundry-orders'),
@@ -1061,7 +1050,6 @@ class CampusServices {
     if (_string(options, 'action') != 'send')
       return {
         'title': '胖乖短信登录',
-        'message': '点击发送后申请一条登录短信。',
         'rows': <Map<String, dynamic>>[],
         'controls': _loginControls(options),
         'actions': [
@@ -1081,7 +1069,7 @@ class CampusServices {
     }, ios: true);
     return {
       'title': '胖乖短信登录',
-      'message': '登录短信申请已提交，请输入收到的验证码。',
+      'message': '验证码已发送',
       'rows': <Map<String, dynamic>>[],
       'controls': _loginControls(options),
       'actions': [
@@ -1142,7 +1130,7 @@ class CampusServices {
       _snapshotOwner = null;
       return {
         'title': '胖乖生活',
-        'message': '已清除本机保存的胖乖登录。',
+        'message': '已退出胖乖账号',
         'rows': <Map<String, dynamic>>[],
       };
     }
@@ -1180,20 +1168,7 @@ class CampusServices {
     _snapshotOwner = result.token;
     return {
       'title': '胖乖登录',
-      'message': '服务端已验证登录，凭据已保存到本机加密存储。',
-      'rows': [
-        _row('已验证账号', {
-          '用户 ID': result.userID,
-          '首次验证时间': result.firstVerifiedAt.toIso8601String(),
-          '最近验证时间': result.lastVerifiedAt.toIso8601String(),
-          '至少验证可用分钟':
-              (result.lastVerifiedAt
-                          .difference(result.firstVerifiedAt)
-                          .inSeconds ~/
-                      60)
-                  .clamp(0, 2147483647),
-        }),
-      ],
+      'rows': <Map<String, dynamic>>[],
       'actions': [
         _action('运行中洗衣订单', 'laundry-orders', {'running': true}),
         _action('全部订单', 'laundry-orders'),
@@ -1392,22 +1367,38 @@ class CampusServices {
     final seconds = snapshot == null
         ? null
         : laundryRemaining(snapshot, DateTime.now().toUtc());
+    final name = _string(order, 'machineName').trim();
+    final shop = _string(order, 'shopName').trim();
+    final program = _string(order, 'machineFunctionName').trim();
+    final created = _orderTime(order['createTime']);
+    final completed = _orderTime(order['completeTime']);
+    final status = order['orderStatus'];
     return _row(
-      '${order['machineName'] ?? '未提供设备名'}',
+      name.isEmpty ? '洗衣订单' : name,
       {
-        ...order,
-        if (snapshot != null) ...{
-          '预计结束（北京时间）': order['completeTime'],
-          '剩余时间': seconds == null
-              ? '未提供'
-              : '${seconds ~/ 60} 分 ${seconds % 60} 秒',
-          'remainingSeconds': seconds,
-          'observedAt': snapshot['observedAt'],
+        '状态': switch (status) {
+          2 => '进行中',
+          3 => '已完成',
+          _ => '状态待确认',
         },
+        if (shop.isNotEmpty) '门店': shop,
+        if (program.isNotEmpty) '程序': program,
+        if (created != null) '下单时间': created,
+        if (completed != null && status == 3) '完成时间': completed,
+        if (completed != null && status == 2) '预计完成': completed,
+        if (seconds != null && seconds > 0)
+          '剩余时间': '${(seconds + 59) ~/ 60} 分钟',
       },
       resource: 'laundry-order',
       options: {'orderId': order['id']},
     );
+  }
+
+  String? _orderTime(Object? value) {
+    if (value is! String ||
+        !RegExp(r'^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}').hasMatch(value))
+      return null;
+    return value.substring(0, 16).replaceFirst('T', ' ');
   }
 
   Future<Map<String, dynamic>> _laundryOrders(
@@ -1442,15 +1433,9 @@ class CampusServices {
       }
       return {
         'title': '运行中洗衣订单',
-        'message': snapshots.isEmpty
-            ? '当前没有使用中的洗衣机订单。'
-            : '倒计时以服务端时间为准；点击订单可更新剩余时间。',
         'rows': [
           for (final snapshot in snapshots)
             _orderRow(campusMap(snapshot['order']), snapshot: snapshot),
-        ],
-        'actions': [
-          _action('重新查找运行中订单', 'laundry-orders', {'running': true}),
         ],
         'snapshots': snapshots,
       };
@@ -1458,14 +1443,10 @@ class CampusServices {
     final result = await _orderPage(account, page);
     return {
       'title': '胖乖订单',
-      'message': '第 $page 页，共 ${result['total']} 条。',
       'rows': [
         for (final order in campusRecords(result['items'])) _orderRow(order),
       ],
-      'controls': [_textControl('page', '页码', page)],
       'actions': [
-        _action('查询', 'laundry-orders'),
-        _action('运行中洗衣订单', 'laundry-orders', {'running': true}),
         if (page > 1) _action('上一页', 'laundry-orders', {'page': page - 1}),
         if (result['nextPage'] != null)
           _action('下一页', 'laundry-orders', {'page': result['nextPage']}),
@@ -1487,10 +1468,6 @@ class CampusServices {
     return {
       'title': '洗衣订单详情',
       'rows': [_orderRow(campusMap(snapshot['order']), snapshot: snapshot)],
-      'actions': [
-        _action('更新剩余时间', 'laundry-order', {'orderId': id}),
-        _action('立即从服务端刷新', 'laundry-order', {'orderId': id, 'refresh': true}),
-      ],
       'snapshot': snapshot,
     };
   }

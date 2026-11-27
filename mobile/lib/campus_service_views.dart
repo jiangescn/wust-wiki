@@ -212,6 +212,95 @@ class LaundryShops extends StatelessWidget {
   }
 }
 
+class LaundryOrderCard extends StatelessWidget {
+  const LaundryOrderCard({
+    required this.title,
+    required this.fields,
+    this.onOpen,
+    this.detail = false,
+    super.key,
+  });
+
+  final String title;
+  final Map<String, String> fields;
+  final VoidCallback? onOpen;
+  final bool detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final status = fields['状态'];
+    final tag = status == null
+        ? null
+        : Text(
+            status,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: status == '进行中'
+                  ? theme.colorScheme.onPrimaryContainer
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+          );
+    if (!detail) {
+      final summary = [
+        fields['门店'],
+        fields['程序'],
+        if (fields['剩余时间'] case final remaining?)
+          '剩余 $remaining'
+        else
+          fields['下单时间'] ?? fields['完成时间'],
+      ].nonNulls.join(' · ');
+      return BlogPanel(
+        ListTile(
+          title: Text(title),
+          subtitle: summary.isEmpty ? null : Text(summary),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ?tag,
+              if (onOpen != null) const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+          onTap: onOpen,
+        ),
+        padding: EdgeInsets.zero,
+        quiet: true,
+      );
+    }
+    return BlogPanel(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(title, style: theme.textTheme.titleLarge)),
+              ?tag,
+            ],
+          ),
+          for (final key in ['门店', '程序', '下单时间', '完成时间', '预计完成', '剩余时间'])
+            if (fields[key] case final value?)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      key,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(child: Text(value, textAlign: TextAlign.end)),
+                  ],
+                ),
+              ),
+        ],
+      ),
+      quiet: true,
+    );
+  }
+}
+
 class LaundryMachines extends StatefulWidget {
   const LaundryMachines(
     this.devices, {

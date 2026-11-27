@@ -180,9 +180,7 @@ Future<Map<String, dynamic>> query(
 
 ### `laundry`
 
-只读取本机 `laundry` 值，无网络请求。返回已保存账号的用户 ID、首次和最近验证时间，或空 rows；不会声称已通过服务器验证。controls 为 phone/smsCode（验证码初始为空）。actions 包含附近门店、发送登录短信、使用验证码登录；有本机凭据时再提供恢复验证、运行订单、全部订单和清除本地登录。
-
-读取损坏值抛 `invalid_credential/invalid_response`，平台存储错误由平台层传递。直接进入本页绝不会发送短信。
+提供 phone/smsCode 登录表单，验证码初始为空。登录页只检查本机是否存在凭据，解码和验证在恢复及查询时执行。安卓「我的洗衣」优先加载全部订单，缺少凭据或凭据失效时打开登录表单。
 
 ### `laundry-shops`
 
@@ -206,7 +204,7 @@ action 不为 `send` 时只返回 phone/smsCode 控件及发送 action，不联�
 
 | action | 分支 options 与请求 | 成功结果 |
 | --- | --- | --- |
-| `login` | phone/smsCode 必填；POST `user/reg`，字段 channel=ios_app/phone/verify；取得非空 token 后 POST `user/info` 验证 | 保存加密凭据；返回用户 ID、首次/最近验证时间、至少验证可用分钟；运行中/全部订单 actions |
+| `login` | phone/smsCode 必填；POST `user/reg`，字段 channel=ios_app/phone/verify；取得非空 token 后 POST `user/info` 验证 | 保存加密凭据，安卓界面自动加载订单 |
 | `restore` | 无附加参数；读取本机凭据，用原 token POST `user/info`；确认返回 id 与保存 userID 一致 | 保留 firstVerifiedAt，更新 lastVerifiedAt 后保存；同上结果 |
 | `clear` | 无附加参数；只 clear('laundry') 并清理本实例订单缓存 | 已清除 message 和空 rows；不修改学校账号、设备 ID |
 | `web-token` | origin/token 必填，由受信任网页容器提供；origin 必须同源 `https://h5.qiekj.com`、无 userinfo；先 POST `user/info` 验证 | 同 login，但不自行创建 WebView、不自动读取网页 localStorage |
@@ -216,11 +214,11 @@ action 不为 `send` 时只返回 phone/smsCode 控件及发送 action，不联�
 
 ### `laundry-orders`
 
-从本机凭据取 token，GET `order/list?page=<page>&pageSize=10&token=<token>`，保留 `+` 的百分号编码。列表项必需 id/orderType/orderStatus，parentTypeId 兼容整数或字符串。各订单 row 显示完整返回字段，行 action 为 `laundry-order(orderId)`。
+从本机凭据取 token，GET `order/list?page=<page>&pageSize=10&token=<token>`，保留 `+` 的百分号编码。列表项必需 id/orderType/orderStatus，parentTypeId 兼容整数或字符串。订单卡片使用设备名、门店、程序、状态及适用的时间字段，点整行进入 `laundry-order(orderId)`。
 
-普通模式返回页码/总数 message、page 控件、查询/运行中/上一页/下一页 actions。根据非空 items 且 page*10<total 推导下一页。
+普通模式提供上一页、下一页操作。根据非空 items 且 page*10<total 推导下一页。
 
-`running=true` 时遍历全部页，按 ID 去重且无新记录时停止；只选 orderType=1、orderStatus=2、parentTypeId 等于洗衣机类型的订单，再逐一获取最新详情并重新检查运行状态。返回带倒计时的 rows、重新查询 action，额外 `snapshots` 数组，无 controls。只有已确认遍历完成且无运行中洗衣订单时显示“当前没有使用中的洗衣机订单”。
+`running=true` 时遍历全部页，按 ID 去重且无新记录时停止。只选 orderType=1、orderStatus=2、parentTypeId 等于洗衣机类型的订单，再逐一获取最新详情并重新检查运行状态。返回展示用 rows 和供内部读取的 `snapshots`。确认无订单时，界面显示「暂无进行中的订单」。
 
 特有错误包括 `laundry_login_required/invalid_credential/invalid_pagination/invalid_response/account_changed/laundry_rejected_<code>`。详情或后续页失败会使整次查询失败，不能显示部分结果为完整空列表。
 
@@ -228,7 +226,7 @@ action 不为 `send` 时只返回 phone/smsCode 控件及发送 action，不联�
 
 POST `order/detail` 的 orderId/token，返回 ID 必须等于请求 ID。预计结束时间 completeTime 按严格 `YYYY-MM-DD HH:mm:ss`、Asia/Shanghai 解析。仅运行中洗衣机且有合法结束时间才计算倒计时。使用 HTTP Date 作为服务器时间，缺失/无法解析时回退为接收时刻。剩余秒数为非负 ceil(结束-服务器时间)；本地读取时按自 observedAt 起的整秒递减到零，时钟回退不增加秒数。已完成订单、缺少结束时间的订单使用 null，显示“未提供”。
 
-返回订单所有字段、北京时间预计结束、剩余分秒、remainingSeconds/observedAt；无 controls。actions 为更新剩余时间（使用缓存）及立即从服务端刷新（refresh=true）。额外 `snapshot={order,estimatedCompletionTime,observedAt,remainingSeconds}`，两个时间使用 UTC ISO 字符串，结束时间可为 null。snapshot 中 remainingSeconds 是 observedAt 时刻值，row 中值是此次显示时刻值。
+详情卡片只列出适用的可读字段。顶部刷新使用 `refresh=true`。内部 `snapshot={order,estimatedCompletionTime,observedAt,remainingSeconds}` 中的两项时间使用 UTC ISO 字符串，结束时间可为 null。卡片的剩余分钟按查询时刻计算。
 
 缓存窗口依当前剩余值动态缩短，大于 600 秒为 120 秒，大于 300 为 60 秒，大于 120 为 30 秒，其他为 0。窗口边界即失效，零秒后重新询问服务器以允许订单延长。失败不缓存，并清理 pending 以允许下一次重试。`refresh=true` 绕过已完成缓存，但仍共用同一订单的在途请求。
 

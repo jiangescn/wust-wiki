@@ -7,6 +7,7 @@ class WikiAppearance extends ChangeNotifier {
   static const _platform = MethodChannel('wiki/native');
   ThemeMode theme = ThemeMode.system;
   bool lowPerformance = false;
+  bool openScheduleOnLaunch = false;
   bool _edited = false;
   bool _disposed = false;
 
@@ -21,21 +22,29 @@ class WikiAppearance extends ChangeNotifier {
         orElse: () => ThemeMode.system,
       );
       lowPerformance = values['lowPerformance'] == true;
+      openScheduleOnLaunch = values['openScheduleOnLaunch'] == true;
       notifyListeners();
     } on Exception {
       return;
     }
   }
 
-  Future<void> change({ThemeMode? theme, bool? lowPerformance}) async {
+  Future<void> change({
+    ThemeMode? theme,
+    bool? lowPerformance,
+    bool? openScheduleOnLaunch,
+  }) async {
     _edited = true;
     this.theme = theme ?? this.theme;
     this.lowPerformance = lowPerformance ?? this.lowPerformance;
+    this.openScheduleOnLaunch =
+        openScheduleOnLaunch ?? this.openScheduleOnLaunch;
     notifyListeners();
     try {
       await _platform.invokeMethod<void>('saveAppearance', {
         'theme': this.theme.name,
         'lowPerformance': this.lowPerformance,
+        'openScheduleOnLaunch': this.openScheduleOnLaunch,
       });
     } on Exception {
       return;
@@ -99,6 +108,14 @@ class WikiSettingsPage extends StatelessWidget {
                     value: appearance.lowPerformance,
                     onChanged: (value) =>
                         appearance.change(lowPerformance: value),
+                  ),
+                  const Divider(height: 1, indent: 64, endIndent: 16),
+                  SwitchListTile(
+                    secondary: const BlogIcon(Icons.calendar_month_outlined),
+                    title: const Text('启动时打开课表'),
+                    value: appearance.openScheduleOnLaunch,
+                    onChanged: (value) =>
+                        appearance.change(openScheduleOnLaunch: value),
                   ),
                 ],
               ),

@@ -1,4 +1,5 @@
 import 'package:wust_wiki/blog_surface.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -160,7 +161,11 @@ void main() {
     final setting = t.element(find.text('低性能模式'));
     expect(Theme.of(setting).brightness, Brightness.dark);
     expect(MediaQuery.disableAnimationsOf(setting), isTrue);
-    expect(saved, {'theme': 'dark', 'lowPerformance': true});
+    expect(saved, {
+      'theme': 'dark',
+      'lowPerformance': true,
+      'openScheduleOnLaunch': false,
+    });
 
     await t.pumpWidget(const SizedBox.shrink());
     await t.pumpWidget(const WikiApp());
@@ -168,6 +173,69 @@ void main() {
     final dock = t.element(find.text('个人').last);
     expect(Theme.of(dock).brightness, Brightness.dark);
     expect(MediaQuery.disableAnimationsOf(dock), isTrue);
+  });
+
+  testWidgets('启动课表设置仅在下次启动生效，关闭后恢复首页', (t) async {
+    var saved = <String, dynamic>{};
+    Completer<Map<String, dynamic>>? pendingRestore;
+    messenger.setMockMethodCallHandler(platform, (call) async {
+      if (call.method == 'saveAppearance') {
+        saved = Map<String, dynamic>.from(call.arguments as Map);
+        return null;
+      }
+      return switch (call.method) {
+        'loadAppearance' =>
+          await (pendingRestore?.future ?? Future.value(saved)),
+        'restore' => <String, dynamic>{},
+        _ => null,
+      };
+    });
+
+    Future<void> openSettings() async {
+      await t.tap(find.text('个人').last);
+      await t.pumpAndSettle();
+      await t.tap(find.text('设置'));
+      await t.pumpAndSettle();
+    }
+
+    final toggle = find.widgetWithText(SwitchListTile, '启动时打开课表');
+    await t.pumpWidget(const WikiApp());
+    await t.pumpAndSettle();
+    expect(find.text('课表尚未同步'), findsOneWidget);
+    await openSettings();
+    expect(t.widget<SwitchListTile>(toggle).value, isFalse);
+    await t.tap(toggle);
+    await t.pumpAndSettle();
+    expect(saved['openScheduleOnLaunch'], isTrue);
+    expect(toggle, findsOneWidget);
+    await t.binding.handlePopRoute();
+    await t.pumpAndSettle();
+    expect(find.byType(WeekPage), findsNothing);
+
+    pendingRestore = Completer<Map<String, dynamic>>();
+    await t.pumpWidget(const SizedBox.shrink());
+    await t.pumpWidget(const WikiApp());
+    expect(find.byType(Dashboard), findsNothing);
+    pendingRestore.complete(saved);
+    pendingRestore = null;
+    await t.pumpAndSettle();
+    expect(find.byType(WeekPage), findsOneWidget);
+    expect(find.text('课表尚未同步'), findsNothing);
+    expect(
+      t.getCenter(find.byKey(const ValueKey('wiki-dock-indicator'))).dx,
+      closeTo(t.getCenter(find.text('课表')).dx, 1),
+    );
+
+    await openSettings();
+    expect(t.widget<SwitchListTile>(toggle).value, isTrue);
+    await t.tap(toggle);
+    await t.pumpAndSettle();
+    expect(saved['openScheduleOnLaunch'], isFalse);
+    await t.pumpWidget(const SizedBox.shrink());
+    await t.pumpWidget(const WikiApp());
+    await t.pumpAndSettle();
+    expect(find.text('课表尚未同步'), findsOneWidget);
+    expect(find.byType(WeekPage), findsNothing);
   });
 
   testWidgets('武科大导航沿用网页版分组并为条目绘制独立的图标', (t) async {
@@ -521,6 +589,8 @@ void main() {
   });
 
   testWidgets('底栏随手移动指示器，松手后选中栏目，连点以最后一栏为准', (t) async {
+    t.view.padding = FakeViewPadding(bottom: 24 * t.view.devicePixelRatio);
+    addTearDown(t.view.resetPadding);
     await t.pumpWidget(const WikiApp());
     await t.pumpAndSettle();
     final indicator = find.byKey(const ValueKey('wiki-dock-indicator'));
@@ -532,6 +602,11 @@ void main() {
       of: find.text('校园').last,
       matching: find.byType(InkWell),
     );
+    final scaffold = t.widget<Scaffold>(find.byType(Scaffold).first);
+    final dockBar = find.byWidget(scaffold.bottomNavigationBar!);
+    final buttonHeight = t.getSize(campusButton).height;
+    expect(buttonHeight, greaterThan(56));
+    expect(t.getSize(dockBar).height, buttonHeight + 24);
     expect(
       t.widget<InkWell>(campusButton).splashFactory,
       NoSplash.splashFactory,

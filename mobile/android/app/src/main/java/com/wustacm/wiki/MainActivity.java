@@ -50,6 +50,7 @@ public final class MainActivity extends FlutterActivity {
                     Map<String,Object> appearance = new java.util.HashMap<>();
                     appearance.put("theme", prefs.getString("appearanceTheme", "system"));
                     appearance.put("lowPerformance", prefs.getBoolean("lowPerformance", false));
+                    appearance.put("openScheduleOnLaunch", prefs.getBoolean("openScheduleOnLaunch", false));
                     result.success(appearance);
                     break;
                 }
@@ -59,6 +60,7 @@ public final class MainActivity extends FlutterActivity {
                     prefs.edit()
                         .putString("appearanceTheme", theme)
                         .putBoolean("lowPerformance", Boolean.TRUE.equals(call.argument("lowPerformance")))
+                        .putBoolean("openScheduleOnLaunch", Boolean.TRUE.equals(call.argument("openScheduleOnLaunch")))
                         .apply();
                     result.success(null);
                     break;
@@ -68,6 +70,22 @@ public final class MainActivity extends FlutterActivity {
                     updater.install(call.argument("versionCode"), Boolean.TRUE.equals(call.argument("openSettings")), result);
                     break;
                 case "loadCountdowns": result.success(countdowns.getString("items", "[]")); break;
+                case "loadPersonalSchedule":
+                    result.success(prefs.getString("personalSchedule", null));
+                    break;
+                case "savePersonalSchedule":
+                    if (!(call.arguments instanceof String schedule)) {
+                        result.error("invalid_arguments", "课程数据无效。", null);
+                        break;
+                    }
+                    new Thread(() -> {
+                        boolean saved = prefs.edit().putString("personalSchedule", schedule).commit();
+                        handler.post(() -> {
+                            if (saved) result.success(null);
+                            else result.error("save_failed", "课程保存失败。", null);
+                        });
+                    }, "save-personal-schedule").start();
+                    break;
                 case "saveCountdowns":
                     if (call.arguments instanceof String items) {
                         countdowns.edit().putString("items", items).apply();

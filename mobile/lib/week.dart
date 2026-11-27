@@ -9,6 +9,8 @@ import 'archive_motion.dart';
 import 'wiki_motion.dart';
 import 'wiki_page.dart';
 import 'local_academic.dart';
+import 'course_editor.dart';
+import 'personal_schedule.dart';
 
 const _days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 typedef _Tone = ({Color fill, Color text});
@@ -162,7 +164,7 @@ class _WeekState extends State<WeekPage> with TickerProviderStateMixin {
       final clear = await showWikiDialog<bool>(
         context,
         (ctx) => AlertDialog(
-          title: const Text('清除本机课表？'),
+          title: const Text('清除教务缓存？'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -182,7 +184,7 @@ class _WeekState extends State<WeekPage> with TickerProviderStateMixin {
   }
 
   void select(int? selection, {double? swipe}) {
-    final current = teachingWeek(widget.store.schedule ?? {}, chinaDay()) ?? 1;
+    final current = widget.store.courseWeekOn(chinaDay()) ?? 1;
     final previous = chosen ?? current, next = selection ?? current;
     setState(() {
       chosen = selection;
@@ -212,13 +214,26 @@ class _WeekState extends State<WeekPage> with TickerProviderStateMixin {
     dragOffset.value = 0;
   }
 
+  Future<void> editCourse(int week, {Lesson? source, bool edit = false}) async {
+    if (!mounted || !widget.store.initialized) return;
+    await openCourseEditor(
+      context,
+      widget.store,
+      week,
+      source: source,
+      edit: edit,
+    );
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = widget.store, term = store.schedule ?? {};
     final today = chinaDay();
-    final current = teachingWeek(term, today);
+    final current = store.courseWeekOn(today);
     final week = chosen ?? current ?? 1;
-    final lessons = store.lessons.where((l) => l.placed).toList();
+    final allLessons = store.displayedLessons;
+    final lessons = allLessons.where((l) => l.placed).toList();
     final names = lessons.map((l) => l.name).toSet().toList()..sort();
     final courseColors = {for (final (i, name) in names.indexed) name: i};
     final lastWeek = lessons.fold<int>(
@@ -230,9 +245,7 @@ class _WeekState extends State<WeekPage> with TickerProviderStateMixin {
       (m, l) => math.max(m, l.sections!.last),
     );
     final colors = Theme.of(context).colorScheme;
-    final start = knownTerm(term)
-        ? autumnStart.add(Duration(days: (week - 1) * 7))
-        : null;
+    final start = store.courseWeekStart(week);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final axis = MediaQuery.sizeOf(context).width < 350 ? 40.0 : 45.0;
     final headerStyle = TextStyle(
@@ -323,6 +336,11 @@ class _WeekState extends State<WeekPage> with TickerProviderStateMixin {
                   icon: const Icon(Icons.today_outlined),
                 ),
               IconButton(
+                tooltip: '添加课程',
+                onPressed: store.initialized ? () => editCourse(week) : null,
+                icon: const Icon(Icons.add),
+              ),
+              IconButton(
                 tooltip: '同步课表',
                 onPressed: syncing
                     ? null
@@ -353,7 +371,7 @@ class _WeekState extends State<WeekPage> with TickerProviderStateMixin {
                       child: Text('${c.value}校区作息'),
                     ),
                   if (store.schedule != null)
-                    const PopupMenuItem(value: 'clear', child: Text('清除本机课表')),
+                    const PopupMenuItem(value: 'clear', child: Text('清除教务缓存')),
                   if (store.loggedIn)
                     const PopupMenuItem(value: 'export', child: Text('导出原始课表')),
                 ],
@@ -411,7 +429,7 @@ class _WeekState extends State<WeekPage> with TickerProviderStateMixin {
                             ? store.loggedIn
                                   ? '尚未同步课表'
                                   : '登录后可同步课表'
-                            : store.lessons.isEmpty
+                            : allLessons.isEmpty
                             ? '本学期暂无排课'
                             : '排课时间待确认',
                         style: TextStyle(color: colors.onSurface, fontSize: 13),
@@ -436,7 +454,7 @@ class _WeekState extends State<WeekPage> with TickerProviderStateMixin {
             builder: (context, snapshot) {
               final times =
                   snapshot.data?['times']?[store.campus] as List? ?? [];
-              final extra = store.lessons.where((l) => !l.placed);
+              final extra = allLessons.where((l) => !l.placed);
               final notes = (term['notes'] as List?) ?? [];
               return LayoutBuilder(
                 builder: (context, bounds) {
@@ -462,9 +480,21 @@ class _WeekState extends State<WeekPage> with TickerProviderStateMixin {
                               unit: unit,
                               times: times,
                               lessons: lessons
-                                  .where((l) => l.day == day)
+                                  .where(
+                                    (l) =>
+                                        l.day == day &&
+                                        (l is! PersonalLesson ||
+                                            l.weeks!.contains(page)),
+                                  )
                                   .toList(),
                               campus: campus,
+                              onManage: store.initialized
+                                  ? (lesson, edit) => editCourse(
+                                      page,
+                                      source: lesson,
+                                      edit: edit,
+                                    )
+                                  : null,
                             ),
                           ),
                         ),
@@ -671,7 +701,7 @@ class _WeekState extends State<WeekPage> with TickerProviderStateMixin {
                             ],
                           ),
                         ),
-                        ..._extras(extra, notes),
+                        ..._extras(extra, notes, week),
                       ],
                     ),
                   );
@@ -684,12 +714,19 @@ class _WeekState extends State<WeekPage> with TickerProviderStateMixin {
     );
   }
 
-  List<Widget> _extras(Iterable<Lesson> lessons, List notes) => [
+  List<Widget> _extras(Iterable<Lesson> lessons, List notes, int week) => [
     for (final l in lessons)
       ListTile(
         leading: const Icon(Icons.event_note_outlined),
         title: Text(l.name),
         subtitle: Text('排课时间待确认 · ${l.data['weeks'] ?? ''} ${l.place}'),
+        trailing: IconButton(
+          tooltip: '添加上课时间',
+          onPressed: widget.store.initialized
+              ? () => editCourse(week, source: l)
+              : null,
+          icon: const Icon(Icons.add),
+        ),
       ),
     for (final n in notes)
       ListTile(
@@ -1008,6 +1045,7 @@ class _DayColumn extends StatelessWidget {
   final String campus;
   final Map<String, int> colors;
   final _CourseTouch touch;
+  final void Function(Lesson, bool)? onManage;
   const _DayColumn({
     required this.touch,
     required this.colors,
@@ -1018,6 +1056,7 @@ class _DayColumn extends StatelessWidget {
     required this.times,
     required this.lessons,
     required this.campus,
+    required this.onManage,
   });
 
   @override
@@ -1067,19 +1106,23 @@ class _DayColumn extends StatelessWidget {
             grey: grey,
             alternate: alternate,
             extra: activeMembers.length - 1,
-            open: () => showWikiSheet<void>(
-              context,
-              (_) => _CourseDetails(
-                colors: colors,
-                lessons: all,
-                week: week,
-                day: day,
-                from: from + 1,
-                to: end,
-                times: times,
-                campus: campus,
-              ),
-            ),
+            open: () async {
+              final action = await showWikiSheet<(Lesson, bool)>(
+                context,
+                (_) => _CourseDetails(
+                  colors: colors,
+                  lessons: all,
+                  week: week,
+                  day: day,
+                  from: from + 1,
+                  to: end,
+                  times: times,
+                  campus: campus,
+                  canManage: onManage != null,
+                ),
+              );
+              if (action != null) onManage?.call(action.$1, action.$2);
+            },
           ),
         ),
       );
@@ -1152,6 +1195,7 @@ class _CourseCard extends StatelessWidget {
     final label = [
       course.name,
       course.place,
+      if (course case final PersonalLesson personal) personal.sourceLabel,
       if (grey) '其他周',
       if (extra > 0) '本周另有 $extra 门课',
       if (alternate) '其他周还有其他课程',
@@ -1356,11 +1400,13 @@ class _CourseDetails extends StatelessWidget {
     required this.to,
     required this.times,
     required this.campus,
+    required this.canManage,
   });
   final List<Lesson> lessons;
   final int week, day, from, to;
   final List times;
   final String campus;
+  final bool canManage;
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).colorScheme;
@@ -1451,6 +1497,12 @@ class _CourseDetails extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         for (final e in <String, String>{
+                          if (l case final PersonalLesson personal)
+                            '来源': personal.sourceLabel,
+                          if (l case PersonalLesson(
+                            time: PersonalTime(:final date?),
+                          ))
+                            '上课日期': dateLabel(date),
                           if (l.place.isNotEmpty) '教室': l.place,
                           if ((l.data['teacher'] ?? '')
                               .toString()
@@ -1467,9 +1519,15 @@ class _CourseDetails extends StatelessWidget {
                               .trim()
                               .isNotEmpty)
                             '分组': l.data['group'].toString(),
-                          '周次': '${l.data['weeks']}',
+                          '周次': l is PersonalLesson
+                              ? formatNumberRanges(l.weeks!)
+                              : '${l.data['weeks']}',
                           '节次':
-                              '${_days[l.day - 1]} · 第 ${_runs(l.sections!)} 节',
+                              '${_days[l.day - 1]} · 第 ${formatNumberRanges(l.sections!)} 节',
+                          if (l case PersonalLesson(
+                            :final course,
+                          ) when course.note.isNotEmpty)
+                            '备注': course.note,
                         }.entries)
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 2),
@@ -1485,6 +1543,24 @@ class _CourseDetails extends StatelessWidget {
                               ],
                             ),
                           ),
+                        if (canManage)
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              TextButton.icon(
+                                onPressed: () =>
+                                    Navigator.pop(context, (l, false)),
+                                icon: const Icon(Icons.add, size: 18),
+                                label: const Text('添加上课时间'),
+                              ),
+                              if (l is PersonalLesson)
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, (l, true)),
+                                  child: const Text('编辑时段'),
+                                ),
+                            ],
+                          ),
                       ],
                     ),
                   ),
@@ -1494,17 +1570,5 @@ class _CourseDetails extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _runs(List<int> values) {
-    final labels = <String>[];
-    for (int i = 0; i < values.length;) {
-      final first = values[i++];
-      while (i < values.length && values[i] == values[i - 1] + 1) {
-        i++;
-      }
-      labels.add(first == values[i - 1] ? '$first' : '$first–${values[i - 1]}');
-    }
-    return labels.join('、');
   }
 }
