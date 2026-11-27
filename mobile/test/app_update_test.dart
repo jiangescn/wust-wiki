@@ -163,7 +163,13 @@ void main() {
     await updater.download();
     expect(updater.phase, UpdatePhase.invalidPackage);
     expect(await File('${directory.path}/wiki-update.apk').exists(), isFalse);
-    expect(await File('${directory.path}/wiki-update.part').exists(), isFalse);
+    expect(
+      await directory
+          .list()
+          .where((entry) => entry.path.endsWith('.part'))
+          .isEmpty,
+      isTrue,
+    );
 
     corrupt = false;
     await updater.download();
@@ -184,4 +190,125 @@ void main() {
       2036,
     ]);
   });
+
+  for (final (title, status, malformed) in [
+    ('appends the missing bytes', HttpStatus.partialContent, false),
+    ('replaces the partial for a full response', HttpStatus.ok, false),
+    (
+      'retries without Range after a 416',
+      HttpStatus.requestedRangeNotSatisfiable,
+      false,
+    ),
+    (
+      'rejects a misaligned range before restarting',
+      HttpStatus.partialContent,
+      true,
+    ),
+  ]) {
+    test('resuming after reopening $title', () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'wiki-resume-test',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => server.close(force: true));
+      final uri = Uri.parse('http://127.0.0.1:${server.port}/wiki/latest.json');
+      const saved = 5;
+      final requests = <String?>[];
+      server.listen((request) async {
+        final response = request.response;
+        if (request.uri.path == uri.path) {
+          response.write(jsonEncode(manifest(uri)));
+          await response.close();
+          return;
+        }
+        final range = request.headers.value(HttpHeaders.rangeHeader);
+        requests.add(range);
+        if (requests.length == 1) {
+          final socket = await response.detachSocket(writeHeaders: false);
+          socket.write(
+            'HTTP/1.1 200 OK\r\n'
+            'Content-Length: ${_payload.length}\r\n'
+            'Connection: close\r\n\r\n',
+          );
+          socket.add(_payload.sublist(0, saved));
+          await socket.flush();
+          await socket.close();
+          return;
+        }
+        if (range != null) response.statusCode = status;
+        final start = response.statusCode == HttpStatus.partialContent
+            ? saved
+            : 0;
+        if (start > 0) {
+          response.headers.set(
+            HttpHeaders.contentRangeHeader,
+            'bytes ${malformed ? start - 1 : start}-${_payload.length - 1}/${_payload.length}',
+          );
+        }
+        final body =
+            response.statusCode == HttpStatus.requestedRangeNotSatisfiable
+            ? <int>[]
+            : _payload.sublist(start);
+        response.contentLength = body.length;
+        response.add(body);
+        await response.close();
+      });
+
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(_channel, (call) async {
+        return switch (call.method) {
+          'wikiUpdateInfo' => {
+            'packageName': _package,
+            'versionName': '0.6.10',
+            'versionCode': 2035,
+            'signerSha256': _signer,
+            'sdk': 36,
+            'abis': ['arm64-v8a'],
+            'cacheDirectory': directory.path,
+          },
+          'recordWikiUpdateCheck' => null,
+          _ => throw MissingPluginException(call.method),
+        };
+      });
+      addTearDown(() => messenger.setMockMethodCallHandler(_channel, null));
+
+      WikiUpdater openUpdater() => WikiUpdater(
+        manifest: uri,
+        client: () => _HttpFixture().createHttpClient(null),
+      );
+      final first = openUpdater();
+      try {
+        expect(await first.check(), isTrue);
+        await first.download();
+        expect(first.phase, UpdatePhase.downloadFailed);
+        expect(first.received, saved);
+      } finally {
+        first.dispose();
+      }
+      final reopened = openUpdater();
+      addTearDown(reopened.dispose);
+      expect(await reopened.check(), isTrue);
+      expect(reopened.received, saved);
+      expect(requests, [null]);
+
+      final installed = File('${directory.path}/wiki-update.apk');
+      await reopened.download();
+      if (malformed) {
+        expect(reopened.phase, UpdatePhase.invalidPackage);
+        expect(await installed.exists(), isFalse);
+        expect(reopened.received, 0);
+        await reopened.download();
+      }
+      expect(reopened.phase, UpdatePhase.ready);
+      expect(await installed.readAsBytes(), _payload);
+      expect(requests, [
+        null,
+        'bytes=$saved-',
+        if (malformed || status == HttpStatus.requestedRangeNotSatisfiable)
+          null,
+      ]);
+    });
+  }
 }

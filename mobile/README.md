@@ -130,7 +130,7 @@ flutter build apk --release
 
 ## 安卓更新发布
 
-「个人 → 检查更新」读取 `https://download.wust.club/wiki/latest.json`，根据设备架构和实际 APK 版本码选择下载包。
+「个人 → 检查更新」读取 `https://download.wust.club/wiki/latest.json`，根据设备架构和实际 APK 版本码选择下载包。暂停、断网或重开 App 后，可以继续下载同一个安装包。
 
 1. 在 Cloudflare R2 创建 `wust-wiki-downloads`，从桶的 **Settings → Custom Domains** 绑定 `download.wust.club`。在 `wust.club` 的 **Caching → Cache Rules** 对该域名的 `/wiki/latest.json` 设为绕过缓存。
 2. 在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 添加 `R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`（仅该桶对象读写）和 `ANDROID_KEYSTORE_BASE64`、`ANDROID_STORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`。添加变量 `R2_ENDPOINT`，值使用该 R2 账户的 HTTPS S3 地址。

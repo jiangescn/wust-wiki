@@ -133,6 +133,9 @@ class WikiUpdater extends ChangeNotifier {
       _newClient = client ?? HttpClient.new;
 
   static const _platform = MethodChannel('wiki/native');
+  static final _partialName = RegExp(
+    r'[/\\]wiki-update(?:-[a-f0-9]{64})?\.part$',
+  );
   final Uri _manifest;
   final HttpClient Function() _newClient;
   Future<Map<String, dynamic>?>? _device;
@@ -144,6 +147,18 @@ class WikiUpdater extends ChangeNotifier {
   UpdateArtifact? release;
   String? installedName;
   int received = 0;
+
+  static File _partialFile(Directory directory, UpdateArtifact artifact) =>
+      File.fromUri(
+        directory.uri.resolve('wiki-update-${artifact.sha256}.part'),
+      );
+
+  static Future<int> _savedLength(File partial, int size) async {
+    final stat = await partial.stat();
+    return stat.type == FileSystemEntityType.file && stat.size <= size
+        ? stat.size
+        : 0;
+  }
 
   Future<Map<String, dynamic>?> _loadDevice() async {
     try {
@@ -203,7 +218,7 @@ class WikiUpdater extends ChangeNotifier {
         }
         body.add(chunk);
       }
-      release = UpdateArtifact.select(
+      final artifact = UpdateArtifact.select(
         jsonDecode(utf8.decode(body.takeBytes())),
         _manifest,
         device['packageName'] as String,
@@ -212,8 +227,18 @@ class WikiUpdater extends ChangeNotifier {
         device['versionCode'] as int,
         device['signerSha256'] as String,
       );
-      _set(release == null ? UpdatePhase.current : UpdatePhase.available);
-      return !_disposed && release != null;
+      received = artifact == null
+          ? 0
+          : await _savedLength(
+              _partialFile(
+                Directory(device['cacheDirectory'] as String),
+                artifact,
+              ),
+              artifact.size,
+            );
+      release = artifact;
+      _set(artifact == null ? UpdatePhase.current : UpdatePhase.available);
+      return !_disposed && artifact != null;
     } on UpdateIneligible catch (reason) {
       _set(
         quiet
@@ -235,6 +260,7 @@ class WikiUpdater extends ChangeNotifier {
   Future<void> download() async {
     final artifact = release;
     if (artifact == null ||
+        _disposed ||
         _download != null ||
         !const {
           UpdatePhase.available,
@@ -243,68 +269,96 @@ class WikiUpdater extends ChangeNotifier {
         }.contains(phase)) {
       return;
     }
-    received = 0;
+    final restart = phase == UpdatePhase.invalidPackage;
+    if (restart) received = 0;
     _cancelled = false;
-    _set(UpdatePhase.downloading);
     final client = _newClient()..connectionTimeout = updateNetworkTimeout;
     _download = client;
+    _set(UpdatePhase.downloading);
     File? partial;
+    var outcome = UpdatePhase.downloadFailed;
     try {
       final device = (await _device)!;
       final directory = Directory(device['cacheDirectory'] as String);
       await directory.create(recursive: true);
-      if (_cancelled || _disposed) return;
-      partial = File('${directory.path}/wiki-update.part');
-      final response = await openUpdateResponse(client, artifact.uri);
-      if (response.contentLength >= 0 &&
-          response.contentLength != artifact.size) {
-        throw const FormatException('APK size mismatch');
-      }
-      final output = await partial.open(mode: FileMode.write);
-      var lastProgress = 0;
-      try {
-        await for (final chunk in response.timeout(updateNetworkTimeout)) {
-          if (_cancelled) break;
-          received += chunk.length;
-          if (received > artifact.size) {
-            throw const FormatException('APK is too large');
-          }
-          await output.writeFrom(chunk);
-          if (!_disposed &&
-              (received - lastProgress >= 256 * 1024 ||
-                  received == artifact.size)) {
-            lastProgress = received;
-            notifyListeners();
-          }
+      partial = _partialFile(directory, artifact);
+      await for (final entry in directory.list(followLinks: false)) {
+        if (entry is File &&
+            entry.path != partial.path &&
+            _partialName.hasMatch(entry.path)) {
+          await entry.delete();
         }
-      } finally {
-        await output.close();
+      }
+      received = restart ? 0 : await _savedLength(partial, artifact.size);
+      if (_cancelled || _disposed) return;
+      if (received < artifact.size) {
+        await _writeApk(client, partial, artifact);
       }
       if (_cancelled || _disposed) return;
+      if (received != artifact.size) {
+        throw const HttpException('APK download interrupted');
+      }
       _set(UpdatePhase.verifying);
-      if (received != artifact.size ||
-          (await sha256.bind(partial.openRead()).first).toString() !=
-              artifact.sha256) {
-        _set(UpdatePhase.invalidPackage);
-        return;
+      if ((await sha256.bind(partial.openRead()).first).toString() !=
+          artifact.sha256) {
+        throw const FormatException('APK digest mismatch');
       }
       await partial.rename('${directory.path}/wiki-update.apk');
-      _set(UpdatePhase.ready);
+      outcome = UpdatePhase.ready;
     } on FormatException {
-      _set(UpdatePhase.invalidPackage);
-    } on Exception {
-      if (!_cancelled) _set(UpdatePhase.downloadFailed);
-    } finally {
-      _download = null;
-      client.close(force: true);
+      outcome = UpdatePhase.invalidPackage;
+      received = 0;
       if (partial != null) {
         try {
           await partial.delete();
         } on FileSystemException {
-          // Successful downloads already moved the temporary file.
+          // A subsequent retry starts from zero even if deletion failed.
         }
       }
-      if (_cancelled) _set(UpdatePhase.available);
+    } on Exception {
+      outcome = UpdatePhase.downloadFailed;
+    } finally {
+      client.close(force: true);
+      _download = null;
+      _set(_cancelled ? UpdatePhase.available : outcome);
+    }
+  }
+
+  Future<void> _writeApk(
+    HttpClient client,
+    File partial,
+    UpdateArtifact artifact,
+  ) async {
+    final (:response, :start) = await openApkResponse(
+      client,
+      artifact.uri,
+      offset: received,
+      size: artifact.size,
+    );
+    if (_cancelled || _disposed) return;
+    final output = await partial.open(
+      mode: start == 0 ? FileMode.write : FileMode.append,
+    );
+    try {
+      received = start;
+      var lastProgress = received;
+      if (!_disposed) notifyListeners();
+      await for (final chunk in response.timeout(updateNetworkTimeout)) {
+        if (_cancelled || _disposed) break;
+        if (received + chunk.length > artifact.size) {
+          throw const FormatException('APK is too large');
+        }
+        await output.writeFrom(chunk);
+        received += chunk.length;
+        if (!_disposed &&
+            (received - lastProgress >= 256 * 1024 ||
+                received == artifact.size)) {
+          lastProgress = received;
+          notifyListeners();
+        }
+      }
+    } finally {
+      await output.close();
     }
   }
 
@@ -397,6 +451,12 @@ class _AppUpdateSheet extends StatelessWidget {
       final phase = updater.phase;
       final release = updater.release;
       final theme = Theme.of(context);
+      final hasProgress = release != null && updater.received > 0;
+      final showProgress =
+          phase == UpdatePhase.downloading ||
+          (hasProgress &&
+              (phase == UpdatePhase.available ||
+                  phase == UpdatePhase.downloadFailed));
       final title = switch (phase) {
         UpdatePhase.checking => '检查更新',
         UpdatePhase.current => '已是最新版本',
@@ -406,17 +466,20 @@ class _AppUpdateSheet extends StatelessWidget {
         _ => release == null ? '检查更新' : '新版 ${release.name}',
       };
       final status = switch (phase) {
+        UpdatePhase.available when hasProgress => '下载已暂停',
         UpdatePhase.downloading => '正在下载',
         UpdatePhase.ready => '下载完成',
         UpdatePhase.installing => '正在打开安装程序',
         UpdatePhase.permission => '允许 Wiki 安装应用后即可继续',
         UpdatePhase.differentSignature => '新版使用了不同的签名，需要手动安装。',
-        UpdatePhase.downloadFailed => '下载失败',
+        UpdatePhase.downloadFailed => hasProgress ? '下载中断' : '下载失败',
         UpdatePhase.installFailed => '无法打开安装程序',
         UpdatePhase.invalidPackage => '安装包校验失败',
         _ => null,
       };
       final (label, action) = switch (phase) {
+        UpdatePhase.available || UpdatePhase.downloadFailed when hasProgress =>
+          ('继续下载', updater.download),
         UpdatePhase.available => ('下载更新', updater.download),
         UpdatePhase.ready => ('安装更新', updater.install),
         UpdatePhase.permission => (
@@ -424,7 +487,7 @@ class _AppUpdateSheet extends StatelessWidget {
           () => updater.install(openSettings: true),
         ),
         UpdatePhase.checkFailed => ('重试', updater.check),
-        UpdatePhase.downloadFailed ||
+        UpdatePhase.downloadFailed => ('重试下载', updater.download),
         UpdatePhase.invalidPackage => ('重新下载', updater.download),
         UpdatePhase.installFailed => ('重试安装', updater.install),
         _ => (null, null),
@@ -482,8 +545,7 @@ class _AppUpdateSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(status, semanticsLabel: status),
-                      if (phase == UpdatePhase.downloading &&
-                          release != null) ...[
+                      if (showProgress && release != null) ...[
                         const SizedBox(height: 10),
                         LinearProgressIndicator(
                           value: (updater.received / release.size).clamp(
@@ -505,11 +567,14 @@ class _AppUpdateSheet extends StatelessWidget {
                   children: [
                     TextButton(
                       onPressed: () {
-                        if (phase == UpdatePhase.downloading) updater.cancel();
+                        if (phase == UpdatePhase.downloading) {
+                          updater.cancel();
+                          return;
+                        }
                         Navigator.pop(context);
                       },
                       child: Text(switch (phase) {
-                        UpdatePhase.downloading => '取消下载',
+                        UpdatePhase.downloading => '暂停下载',
                         UpdatePhase.available => '稍后',
                         _ => '关闭',
                       }),
